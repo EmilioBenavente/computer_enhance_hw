@@ -1,7 +1,7 @@
 @echo off
 
-set COMMON_CMD_FLAGS=-Z7
-set COMMON_LINKER_FLAGS=gdi32.lib
+set COMMON_CMD_FLAGS=-nologo -Z7
+set COMMON_LINKER_FLAGS=gdi32.lib user32.lib -INCREMENTAL:NO
 
 if not exist ..\..\build mkdir ..\..\build
 
