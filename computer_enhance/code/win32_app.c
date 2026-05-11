@@ -1,5 +1,6 @@
 #include "win32_app.h"
 
+
 file_scope void
 RenderTestImage(win32_display_buffer* Buffer)
 {
@@ -15,6 +16,24 @@ RenderTestImage(win32_display_buffer* Buffer)
     Row += Buffer->Stride;
   }
 }
+
+file_scope void
+RenderBlankImage(win32_display_buffer* Buffer)
+{
+
+  s8* Row = (s8*)Buffer->Memory;
+  for(s32 Y = 0; Y < Buffer->Height; Y++)
+  {
+    s32* Pixel = (s32*)Row;
+    for(s32 X = 0; X < Buffer->Width; X++)
+    {
+      *Pixel++ = 0;
+    }
+    Row += Buffer->Stride;
+  }
+}
+
+
 
 file_scope void
 Win32DrawDisplayRegion(win32_display_buffer* Buffer, s32 Width, s32 Height)
@@ -137,12 +156,10 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
       }
 
       //@NOTE(Emilio): Rendering Code.
-      RenderTestImage(&GlobalDisplayBuffer);
+      RenderBlankImage(&GlobalDisplayBuffer);
       HDC DeviceContext = GetDC(MainWindow);
       Win32WindowResize(DeviceContext, &GlobalDisplayBuffer);
       ReleaseDC(MainWindow, DeviceContext);
-
-
     }
 
   }
