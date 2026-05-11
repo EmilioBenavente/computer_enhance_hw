@@ -24,5 +24,9 @@ typedef uint32_t  b32;
 
 #define plex struct
 
+#define KiloBytes(Value) ((Value) * 1024)
+#define MegaBytes(Value) (KiloBytes(Value) * 1024)
+#define GigaBytes(Value) (MegaBytes(Value) * 1024)
+
 
 #endif //@NOTE(Emilio): _ECB_UTILS_H_

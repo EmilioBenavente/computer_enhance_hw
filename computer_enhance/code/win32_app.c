@@ -1,5 +1,10 @@
 #include "win32_app.h"
 
+//@NOTE(Emilio): For now we will include this here
+//  but when we add support for hot-reloading
+//  we will need to load this manually
+#include "simulator.c"
+#include "decoder.c"
 
 file_scope void
 RenderTestImage(win32_display_buffer* Buffer)
