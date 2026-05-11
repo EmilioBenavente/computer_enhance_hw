@@ -1,5 +1,55 @@
 #include "win32_app.h"
 
+file_scope void
+RenderTestImage(win32_display_buffer* Buffer)
+{
+
+  s8* Row = (s8*)Buffer->Memory;
+  for(s32 Y = 0; Y < Buffer->Height; Y++)
+  {
+    s32* Pixel = (s32*)Row;
+    for(s32 X = 0; X < Buffer->Width; X++)
+    {
+      *Pixel++ = (X << 8) | (Y << 16);
+    }
+    Row += Buffer->Stride;
+  }
+}
+
+file_scope void
+Win32DrawDisplayRegion(win32_display_buffer* Buffer, s32 Width, s32 Height)
+{
+  Buffer->Width  = Width;
+  Buffer->Height = Height;
+  Buffer->Stride = Buffer->Width * Buffer->BytesPerPixel;
+
+  //@IMPORTANT(Emilio): We actually don't update the memory to account for a
+  //  new width and height, since for now this is expected to only
+  //  be called once.
+  if(Buffer->Memory == 0)
+  {
+    Buffer->Memory = VirtualAlloc(0, Buffer->Width * Buffer->Height * Buffer->BytesPerPixel,
+                                   MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+  }
+
+  Buffer->Info.bmiHeader.biSize         = sizeof(Buffer->Info.bmiHeader);
+  Buffer->Info.bmiHeader.biWidth        = Buffer->Width;
+  Buffer->Info.bmiHeader.biHeight       = Buffer->Height;
+  Buffer->Info.bmiHeader.biPlanes       = 2;
+  Buffer->Info.bmiHeader.biBitCount     = Buffer->BytesPerPixel * 8;
+  Buffer->Info.bmiHeader.biCompression  = BI_RGB;
+}
+
+file_scope void
+Win32WindowResize(HDC DeviceContext, win32_display_buffer* Buffer)
+{
+  StretchDIBits(DeviceContext,
+                0, 0, WND_WIDTH, WND_HEIGHT,
+                0, 0, Buffer->Width, Buffer->Height,
+                Buffer->Memory, &Buffer->Info,
+                DIB_RGB_COLORS, SRCCOPY);
+}
+
 LRESULT
 Win32MainWindowCallback(HWND Window, UINT Message,
                         WPARAM WParam, LPARAM LParam)
@@ -8,14 +58,18 @@ Win32MainWindowCallback(HWND Window, UINT Message,
 
   switch(Message)
   {
-    //@TODO(Emilio): Windows messaging into switch cases.
     case WM_PAINT:
     {
       PAINTSTRUCT Paint = {};
       BeginPaint(Window, &Paint);
-
-
       EndPaint(Window, &Paint);
+    } break;
+
+    case WM_SIZE:
+    {
+      HDC DeviceContext = GetDC(Window);
+      Win32WindowResize(DeviceContext, &GlobalDisplayBuffer);
+      ReleaseDC(Window, DeviceContext);
     } break;
 
     default:
@@ -50,8 +104,13 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
 
   if(MainWindow)
   {
-
+    //@NOTE(Emilio): Initialize Globals.
     GlobalIsGameRunning = 1;
+
+    GlobalDisplayBuffer.BytesPerPixel = 4;
+    Win32DrawDisplayRegion(&GlobalDisplayBuffer, WND_WIDTH, WND_HEIGHT);
+
+    //@NOTE(Emilio): Start of Game Loop
     while(GlobalIsGameRunning)
     {
       MSG Message = {};
@@ -77,7 +136,13 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
         }
       }
 
-      OutputDebugString("We Are Here!\n");
+      //@NOTE(Emilio): Rendering Code.
+      RenderTestImage(&GlobalDisplayBuffer);
+      HDC DeviceContext = GetDC(MainWindow);
+      Win32WindowResize(DeviceContext, &GlobalDisplayBuffer);
+      ReleaseDC(MainWindow, DeviceContext);
+
+
     }
 
   }

@@ -22,5 +22,7 @@ typedef uint32_t  b32;
 #define local_persist static
 #define file_scope static
 
+#define plex struct
+
 
 #endif //@NOTE(Emilio): _ECB_UTILS_H_
