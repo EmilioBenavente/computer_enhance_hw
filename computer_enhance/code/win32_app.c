@@ -96,6 +96,18 @@ Win32MainWindowCallback(HWND Window, UINT Message,
       ReleaseDC(Window, DeviceContext);
     } break;
 
+    case WM_CLOSE:
+    {
+      GlobalIsGameRunning = 0;
+      DestroyWindow(Window);
+    } break;
+
+    case WM_DESTROY:
+    {
+      GlobalIsGameRunning = 0;
+      PostQuitMessage(0);
+    } break;
+
     default:
     {
       Result =
