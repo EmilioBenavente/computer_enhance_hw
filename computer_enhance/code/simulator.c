@@ -1,7 +1,8 @@
 #include "simulator.h"
 
 file_scope void
-FlashProgram(void* MemoryChipPtr, void* Program, u32 MemoryAddress, u32 SizeOfProgram)
+SimulatorFlashProgram(void* MemoryChipPtr, void* Program,
+                      u32 MemoryAddress, u32 SizeOfProgram)
 {
   ECB_ASSERT(MemoryAddress < MegaBytes(1));
   ECB_ASSERT(SizeOfProgram < MegaBytes(1));

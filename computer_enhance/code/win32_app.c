@@ -212,7 +212,7 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
     //@NOTE(Emilio): Simulator Code
     ///////////////////////////////
     file_result FileResult = Win32ReadEntireFile(HW_FILE);
-    FlashProgram(SimMemory, FileResult.Contents, 0, FileResult.ContentSize);
+    SimulatorFlashProgram(SimMemory, FileResult.Contents, 0, FileResult.ContentSize);
 
     char* PtrA = SimISA[0].OpCodeMnemonic;
     char* PtrB = SimISA[1].OpCodeMnemonic;
