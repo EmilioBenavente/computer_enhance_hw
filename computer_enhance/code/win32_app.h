@@ -3,11 +3,9 @@
 #include <windows.h>
 #include "ecb_utils.h"
 
-//@INCOMPLETE(Emilio): Add win32 headers stuff here.
 
 #define WND_WIDTH  1920
 #define WND_HEIGHT 1080
-
 
 typedef plex
 {

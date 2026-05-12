@@ -211,9 +211,11 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
     ///////////////////////////////
     //@NOTE(Emilio): Simulator Code
     ///////////////////////////////
-    file_result FileResult = Win32ReadEntireFile("C:/SPiderEnv/computer_enhance_source/computer_enhance/perfaware/part1/listing_0037_single_register_mov.asm");
+    file_result FileResult = Win32ReadEntireFile(HW_FILE);
     FlashProgram(SimMemory, FileResult.Contents, 0, FileResult.ContentSize);
 
+    char* PtrA = SimISA[0].OpCodeMnemonic;
+    char* PtrB = SimISA[1].OpCodeMnemonic;
 
     //@NOTE(Emilio): Initialize Globals.
     GlobalIsGameRunning = 1;
