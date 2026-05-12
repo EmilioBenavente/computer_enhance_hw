@@ -1,15 +1,15 @@
-#define INSTRUCTION_BITS(bits, bit_count) {bits, bit_count}
-#define OP_CODE_BITS(bits, bit_count) .OpCode = INSTRUCTION_BITS(bits, bit_count)
-#define D_BIT(bit)                    .IsDisplacement = INSTRUCTION_BITS(bit, 1)
-#define W_BIT(bit)                    .IsWide = INSTRUCTION_BITS(bit, 1)
-#define MOD_BITS(bits)                .Mod = INSTRUCTION_BITS(bits, 2)
-#define OCTAL_CODE_BITS(bits)         .OctalCode = INSTRUCTION_BITS(bits, 3)
-#define REG_BITS(bits)                .Reg = INSTRUCTION_BITS(bits, 3)
-#define RM_BITS(bits)                 .RM = INSTRUCTION_BITS(bits, 3)
-#define DISP_LOW(bits)                .DispLow = INSTRUCTION_BITS(bits, 8)
-#define DISP_HIGH(bits)               .DispHigh = INSTRUCTION_BITS(bits, 8)
-#define DATA_LOW(bits)                .DataLow = INSTRUCTION_BITS(bits, 8)
-#define DATA_HIGH(bits)               .DataHigh = INSTRUCTION_BITS(bits, 8)
+#define INSTRUCTION_BITS(is_exists, bits, bit_count) {is_exists, bits, bit_count}
+#define OP_CODE_BITS(bits, bit_count) .OpCode = INSTRUCTION_BITS(1, bits, bit_count)
+#define D_BIT(bit)                    .IsDisplacement = INSTRUCTION_BITS(1, bit, 1)
+#define W_BIT(bit)                    .IsWide = INSTRUCTION_BITS(1, bit, 1)
+#define MOD_BITS(bits)                .Mod = INSTRUCTION_BITS(1, bits, 2)
+#define OCTAL_CODE_BITS(bits)         .OctalCode = INSTRUCTION_BITS(1, bits, 3)
+#define REG_BITS(bits)                .Reg = INSTRUCTION_BITS(1, bits, 3)
+#define RM_BITS(bits)                 .RM = INSTRUCTION_BITS(1, bits, 3)
+#define DISP_LOW(bits)                .DispLow = INSTRUCTION_BITS(1, bits, 8)
+#define DISP_HIGH(bits)               .DispHigh = INSTRUCTION_BITS(1, bits, 8)
+#define DATA_LOW(bits)                .DataLow = INSTRUCTION_BITS(1, bits, 8)
+#define DATA_HIGH(bits)               .DataHigh = INSTRUCTION_BITS(1, bits, 8)
 
 
 #define MOV_RM_TO_FROM_REG {"mov", {{OP_CODE_BITS(0b100010, 6), D_BIT(0), W_BIT(0), MOD_BITS(0), REG_BITS(0), RM_BITS(0), DISP_LOW(0), DISP_HIGH(0)}}}

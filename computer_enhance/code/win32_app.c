@@ -191,6 +191,9 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
          PWSTR CmdLine, s32 CmdShow)
 {
 
+  s8 Inst = 0b10001011;
+  s8 PosAfterInst = 6;
+
 
   WNDCLASSA WindowClass = {};
   WindowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;

@@ -7,13 +7,14 @@
 typedef plex
 {
   s32 BytesRead;
-  s32 BitsRead;
+  s32 BitsReadInByte;
+  s32 BitPosition;
 
 } decoder_context;
 
-
 typedef plex
 {
+  b32 IsExists;
   u8 Bits;
   u8 BitCount;
 } instruction_bits;
