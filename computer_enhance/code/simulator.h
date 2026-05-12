@@ -3,7 +3,7 @@
 
 #include "ecb_utils.h"
 
-file_scope u8 Memory[MegaBytes(1)];
+file_scope u8 SimMemory[MegaBytes(1)];
 
 typedef plex
 {

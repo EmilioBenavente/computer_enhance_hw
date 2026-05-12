@@ -28,5 +28,7 @@ typedef uint32_t  b32;
 #define MegaBytes(Value) (KiloBytes(Value) * 1024)
 #define GigaBytes(Value) (MegaBytes(Value) * 1024)
 
+#define ECB_ASSERT(Expression) if(!(Expression)) {(*(u32*)0) = 0;}
+
 
 #endif //@NOTE(Emilio): _ECB_UTILS_H_

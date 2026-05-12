@@ -1,13 +1,83 @@
 #include "win32_app.h"
 
+file_scope file_result
+Win32ReadEntireFile(char* Filename)
+{
+  file_result Result = {};
+
+  HANDLE FileHandle = CreateFileA(Filename, GENERIC_READ,
+                                  FILE_SHARE_READ, 0, OPEN_EXISTING,
+                                  FILE_ATTRIBUTE_NORMAL, 0);
+  if(FileHandle != INVALID_HANDLE_VALUE)
+  {
+    LARGE_INTEGER FileSize;
+    if(GetFileSizeEx(FileHandle, &FileSize))
+    {
+      //@NOTE(Emilio): The 8086 Chip can only store 1 MB of data.
+      ECB_ASSERT(FileSize.LowPart < MegaBytes(1));
+
+      Result.Contents = VirtualAlloc(0, FileSize.LowPart, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
+      DWORD BytesRead;
+      if(ReadFile(FileHandle, Result.Contents, FileSize.LowPart, &BytesRead, 0))
+      {
+        //@NOTE(Emilio): At this point we should have read EXACTLY FileSize.
+        ECB_ASSERT((DWORD)FileSize.LowPart == BytesRead);
+
+        Result.ContentSize = BytesRead;
+      }
+    }
+
+    CloseHandle(FileHandle);
+  }
+
+  return Result;
+}
+
+file_scope b32
+Win32WriteEntireFile(char* Filename, file_result* Contents)
+{
+  b32 Result = 0;
+
+  HANDLE FileHandle = CreateFileA(Filename, GENERIC_WRITE,
+                                  FILE_SHARE_WRITE, 0, CREATE_ALWAYS,
+                                  FILE_ATTRIBUTE_NORMAL, 0);
+
+  if(FileHandle != INVALID_HANDLE_VALUE)
+  {
+    DWORD BytesWritten;
+    if(WriteFile(&FileHandle, &Contents->Contents, Contents->ContentSize, &BytesWritten, 0))
+    {
+      //@NOTE(Emilio): At this point we should have written EXACTLY FileSize.
+      ECB_ASSERT((DWORD)Contents->ContentSize == BytesWritten);
+
+      Result = 1;
+    }
+
+    CloseHandle(&FileHandle);
+  }
+
+  return Result;
+}
+
+file_scope void
+Win32FreeFile(file_result* Contents)
+{
+  if(Contents->Contents)
+  {
+    VirtualFree(Contents->Contents, 0, MEM_RELEASE);
+  }
+}
+
 //@NOTE(Emilio): For now we will include this here
 //  but when we add support for hot-reloading
 //  we will need to load this manually
 #include "simulator.c"
 #include "decoder.c"
 
+
 file_scope void
-RenderTestImage(win32_display_buffer* Buffer)
+Win32RenderTestImage(win32_display_buffer* Buffer)
 {
 
   s8* Row = (s8*)Buffer->Memory;
@@ -23,7 +93,7 @@ RenderTestImage(win32_display_buffer* Buffer)
 }
 
 file_scope void
-RenderBlankImage(win32_display_buffer* Buffer)
+Win32RenderBlankImage(win32_display_buffer* Buffer)
 {
 
   s8* Row = (s8*)Buffer->Memory;
@@ -37,8 +107,6 @@ RenderBlankImage(win32_display_buffer* Buffer)
     Row += Buffer->Stride;
   }
 }
-
-
 
 file_scope void
 Win32DrawDisplayRegion(win32_display_buffer* Buffer, s32 Width, s32 Height)
@@ -140,6 +208,13 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
 
   if(MainWindow)
   {
+    ///////////////////////////////
+    //@NOTE(Emilio): Simulator Code
+    ///////////////////////////////
+    file_result FileResult = Win32ReadEntireFile("C:/SPiderEnv/computer_enhance_source/computer_enhance/perfaware/part1/listing_0037_single_register_mov.asm");
+    FlashProgram(SimMemory, FileResult.Contents, 0, FileResult.ContentSize);
+
+
     //@NOTE(Emilio): Initialize Globals.
     GlobalIsGameRunning = 1;
 
@@ -173,7 +248,7 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
       }
 
       //@NOTE(Emilio): Rendering Code.
-      RenderBlankImage(&GlobalDisplayBuffer);
+      Win32RenderBlankImage(&GlobalDisplayBuffer);
       HDC DeviceContext = GetDC(MainWindow);
       Win32WindowResize(DeviceContext, &GlobalDisplayBuffer);
       ReleaseDC(MainWindow, DeviceContext);

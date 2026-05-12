@@ -19,6 +19,13 @@ typedef plex
   s32 Stride;
 } win32_display_buffer;
 
+typedef plex
+{
+  LPVOID Contents;
+  DWORD ContentSize;
+} file_result;
+
+
 
 //@NOTE(Emilio): Globals
 global_variable b32 GlobalIsGameRunning;
