@@ -7,13 +7,40 @@
 
 file_scope u8 SimMemory[MegaBytes(1)];
 
+
 typedef plex
 {
-  //@TODO(Emilio): CPU Registers go here.
-  s32 Placeholder;
+  union
+  {
+    plex
+    {
+      u8 Low;
+      u8 High;
+    };
+    u16 Value;
+  };
+} reg_type;
 
+typedef plex
+{
+  reg_type A;
+  reg_type B;
+  reg_type C;
+  reg_type D;
 
-} CPU;
+  u16 SP;
+  u16 BP;
+  u16 SI;
+  u16 DI;
+
+  u16 CS;
+  u16 DS;
+  u16 SS;
+  u16 ES;
+
+  u16 PC;
+  u16 Flags;
+} sim_cpu;
 
 
 #endif //@NOTE(Emilio): _SIMULATOR_H_

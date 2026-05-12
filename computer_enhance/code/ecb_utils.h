@@ -30,5 +30,6 @@ typedef uint32_t  b32;
 
 #define ECB_ASSERT(Expression) if(!(Expression)) {(*(u32*)0) = 0;}
 
+#define ArraySize(Array) (sizeof((Array)) / sizeof((Array)[0]))
 
 #endif //@NOTE(Emilio): _ECB_UTILS_H_

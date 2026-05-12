@@ -6,9 +6,10 @@
 
 typedef plex
 {
-  s32 Placeholder;
+  s32 BytesRead;
+  s32 BitsRead;
 
-} decoder_type;
+} decoder_context;
 
 
 typedef plex

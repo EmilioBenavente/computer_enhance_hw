@@ -211,11 +211,13 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
     ///////////////////////////////
     //@NOTE(Emilio): Simulator Code
     ///////////////////////////////
-    file_result FileResult = Win32ReadEntireFile(HW_FILE);
-    SimulatorFlashProgram(SimMemory, FileResult.Contents, 0, FileResult.ContentSize);
+    sim_cpu SimCPU = {};
 
-    char* PtrA = SimISA[0].OpCodeMnemonic;
-    char* PtrB = SimISA[1].OpCodeMnemonic;
+    file_result FileResult = Win32ReadEntireFile(HW_FILE);
+    SimulatorFlashProgram(SimMemory, FileResult.Contents, SimCPU.PC, FileResult.ContentSize);
+
+    decoder_context DecoderContext = {};
+    DecoderDecodeInstruction(&DecoderContext, SimMemory, SimCPU.PC);
 
     //@NOTE(Emilio): Initialize Globals.
     GlobalIsGameRunning = 1;
