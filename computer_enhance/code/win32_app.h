@@ -3,6 +3,13 @@
 #include <windows.h>
 #include "ecb_utils.h"
 
+//@NOTE(Emilio): For now we will include this here
+//  but when we add support for hot-reloading
+//  we will need to load this manually
+#include "simulator.c"
+#include "decoder.c"
+
+
 
 #define WND_WIDTH  1920
 #define WND_HEIGHT 1080

@@ -1,5 +1,13 @@
 #include "win32_app.h"
 
+file_scope void
+Win32DebugPrintInstruction(decoder_context* Context)
+{
+  char DebugText[256];
+  sprintf(DebugText, "%s ; %s\n", Context->CurrentInstruction, Context->Comments);
+  OutputDebugStringA(DebugText);
+}
+
 file_scope file_result
 Win32ReadEntireFile(char* Filename)
 {
@@ -68,13 +76,6 @@ Win32FreeFile(file_result* Contents)
     VirtualFree(Contents->Contents, 0, MEM_RELEASE);
   }
 }
-
-//@NOTE(Emilio): For now we will include this here
-//  but when we add support for hot-reloading
-//  we will need to load this manually
-#include "simulator.c"
-#include "decoder.c"
-
 
 file_scope void
 Win32RenderTestImage(win32_display_buffer* Buffer)
@@ -221,6 +222,8 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
 
     decoder_context DecoderContext = {};
     DecoderDecodeInstruction(&DecoderContext, SimMemory, SimCPU.PC);
+    Win32DebugPrintInstruction(&DecoderContext);
+
 
     //@NOTE(Emilio): Initialize Globals.
     GlobalIsGameRunning = 1;
