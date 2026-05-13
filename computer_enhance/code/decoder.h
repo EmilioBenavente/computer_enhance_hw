@@ -1,22 +1,16 @@
 #if !defined(_DECODER_H_)
 #define _DECODER_H_
 
+#include <stdio.h>
 #include "ecb_utils.h"
 #include "sim8086.inl"
-
-typedef plex
-{
-  s32 BytesRead;
-  s32 BitsReadInByte;
-  s32 BitPosition;
-
-} decoder_context;
 
 typedef plex
 {
   b32 IsExists;
   u8 Bits;
   u8 BitCount;
+  u8 ValueMask;
 } instruction_bits;
 
 typedef plex
@@ -40,9 +34,23 @@ typedef plex
     };
     instruction_bits InstructionBits[10];
   };
-} instruction_type;
+} instruction_fields;
 
-file_scope instruction_type SimISA[] =
+typedef plex
+{
+  s32 BytesRead;
+  s32 BitsReadInByte;
+  s32 BitPosition;
+
+  char  CurrentInstruction[32];
+  char* InstructionWritePtr;
+  char  Comments[256];
+  char* CommentPtr;
+  instruction_fields InstructionFields;
+} decoder_context;
+
+
+file_scope instruction_fields SimISA[] =
 {
   MOV_RM_TO_FROM_REG,
   MOV_IMM_TO_RM,
@@ -51,6 +59,21 @@ file_scope instruction_type SimISA[] =
   MOV_ACC_TO_MEM,
   MOV_RM_TO_SEG,
   MOV_SEG_TO_RM
+};
+
+file_scope char* RegTable[] =
+{
+  "al", "cl", "dl", "bl", "ah", "ch", "dh", "bh",
+  "ax", "cx", "dx", "bx", "sp", "bp", "si", "di"
+};
+
+file_scope char* RMTable[] =
+{
+  "[bx + si]", "[bx + di]", "[bp + si]", "[bp + di]", "[si]", "[di]", "NO!", "[bx]",
+  "[bx + si", "[bx + di", "[bp + si", "[bp + di", "[si", "[di", "[bp", "[bx",
+  "[bx + si", "[bx + di", "[bp + si", "[bp + di", "[si", "[di", "[bp", "[bx",
+  "al", "cl", "dl", "bl", "ah", "ch", "dh", "bh",
+  "ax", "cx", "dx", "bx", "sp", "bp", "si", "di"
 };
 
 
