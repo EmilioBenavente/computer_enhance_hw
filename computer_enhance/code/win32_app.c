@@ -5,7 +5,7 @@ Win32DebugPrintInstruction(decoder_context* Context, char* Result)
 {
   if(Result)
   {
-    sprintf(Result, "%s ;%s\ntest", Context->CurrentInstruction, Context->Comments);
+    sprintf(Result, "%s ;%s\n", Context->CurrentInstruction, Context->Comments);
     OutputDebugStringA(Result);
   }
   else
@@ -194,18 +194,12 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
     file_result FileResult = Win32ReadEntireFile(HW_FILE);
     SimulatorFlashProgram(SimMemory, FileResult.Contents, SimCPU.PC, FileResult.ContentSize);
 
-    decoder_context DecoderContext = {};
-    DecoderDecodeInstruction(&DecoderContext, SimMemory, SimCPU.PC);
-    char DebugText[256];
-    Win32DebugPrintInstruction(&DecoderContext, DebugText);
-
 
     //@NOTE(Emilio): Initialize Globals.
     GlobalIsGameRunning = 1;
 
     GlobalDisplayBuffer.BytesPerPixel = 4;
     Win32DrawDisplayRegion(&GlobalDisplayBuffer, WND_WIDTH, WND_HEIGHT);
-
 
     //@NOTE(Emilio): Initialize Render Code
     render_display_buffer RenderDisplayBuffer = {};
@@ -214,6 +208,7 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
     RenderDisplayBuffer.BytesPerPixel = GlobalDisplayBuffer.BytesPerPixel;
     RenderDisplayBuffer.Stride = GlobalDisplayBuffer.Stride;
     RenderDisplayBuffer.Memory = GlobalDisplayBuffer.Memory;
+    RendererRenderBlankImage(&RenderDisplayBuffer);
 
     //@NOTE(Emilio): Start of Game Loop
     while(GlobalIsGameRunning)
@@ -241,16 +236,51 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
         }
       }
 
+      decoder_context DecoderContext = {};
+      char DebugText[256];
+      if(SimCPU.PC < FileResult.ContentSize)
+      {
+        DecoderDecodeInstruction(&DecoderContext, SimMemory, SimCPU.PC);
+        Win32DebugPrintInstruction(&DecoderContext, DebugText);
+        SimCPU.PC += DecoderContext.BytesRead;
+      }
+
+
       //@NOTE(Emilio): Rendering Code.
-      RendererRenderBlankImage(&RenderDisplayBuffer);
       RendererRenderBox(&RenderDisplayBuffer, 0, 0, WND_WIDTH, WND_HEIGHT, 0.66f, 0.00f, 0.66f);
-      RendererRenderDisplayBox(&RenderDisplayBuffer, (WND_WIDTH / 3) * 2,
+
+//@NOTE(Emilio): Memory Window.
+      RendererRenderDisplayBox(&RenderDisplayBuffer, (WND_WIDTH/2),
+                    (WND_HEIGHT/32), 900, 800, 5,
+                    0.17f, 0.17f, 0.17f,
+                    0.1f, 0.1f, 0.1f);
+      RendererRenderMemoryWindow(&RenderDisplayBuffer, (WND_WIDTH/2) + 5,
+                    (WND_HEIGHT/32) + 5, 890, 790);
+ 
+
+
+//@NOTE(Emilio): Simulated Decoder.
+      RendererRenderDisplayBox(&RenderDisplayBuffer, (WND_WIDTH / 24),
+                    (WND_HEIGHT / 32), 800, 400, 5,
+                    0.17f, 0.17f, 0.17f,
+                    0.1f, 0.1f, 0.1f);
+
+//@NOTE(Emilio): Simulated CPU.
+      RendererRenderDisplayBox(&RenderDisplayBuffer, (WND_WIDTH / 24),
+                    WND_HEIGHT - (WND_HEIGHT / 3) - (WND_WIDTH / 16), 800, 400, 5,
+                    0.17f, 0.17f, 0.17f,
+                    0.1f, 0.1f, 0.1f);
+
+
+//@NOTE(Emilio): Output Window.
+      RendererRenderDisplayBox(&RenderDisplayBuffer, ((WND_WIDTH / 3) * 2) + (WND_WIDTH/24),
                     WND_HEIGHT - (WND_HEIGHT / 5), 500, 100, 5,
                     0.17f, 0.17f, 0.17f,
                     0.1f, 0.1f, 0.1f);
 
-      RendererRenderString(&RenderDisplayBuffer, (WND_WIDTH / 3) * 2 + 10,
+      RendererRenderString(&RenderDisplayBuffer, ((WND_WIDTH / 3) * 2 + 10) + (WND_WIDTH/24),
                     WND_HEIGHT - (WND_HEIGHT / 5) + 55, DebugText);
+
 
 
       HDC DeviceContext = GetDC(MainWindow);

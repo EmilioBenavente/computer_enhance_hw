@@ -180,3 +180,30 @@ RendererRenderString(render_display_buffer* Buffer, s32 XPos, s32 YPos, char* St
   }
 }
 
+//@INCOMPLETE(Emilio): This is forced to use 8x16 Grid for now.
+file_scope void
+RendererRenderMemoryWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
+                           s32 TempWidth, s32 TempHeight)
+{
+  s32 Width = TempWidth / 16;
+  s32 Height = TempHeight / 8;
+  s32 OriginalXPos = XPos;
+  for(u32 YIter = 0; YIter < 8; YIter++)
+  {
+    for(u32 XIter = 0; XIter < 16; XIter++)
+    {
+      r32 Color = (r32)SimMemory[YIter*16+XIter + 650] / 255.0f;
+      RendererRenderBox(Buffer, XPos, YPos,
+                    Width, Height, Color, Color, Color);
+      char Value[2];
+      Value[0] = SimMemory[YIter*16+XIter+650];
+      Value[1] = '\0';
+      RendererRenderString(Buffer, XPos-15, YPos+50, Value);
+      XPos += Width;
+    }
+    YPos += Height;
+    XPos = OriginalXPos;
+  }
+}
+
+

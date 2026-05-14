@@ -199,5 +199,5 @@ DecoderDecodeInstruction(decoder_context* Context, void* MemoryChipPtr,
   DecoderParseInstructionFromFields(Context);
 
   //@NOTE(Emilio): Printing the Instruction
-  DecoderAddCommentToEndOfInstruction(Context, Context->InstructionFields.OpCodeMnemonic);
+  DecoderAddCommentToEndOfInstruction(Context, "The Following is a mov Instruction.");
 }
