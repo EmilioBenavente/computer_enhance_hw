@@ -8,6 +8,7 @@
 //  we will need to load this manually
 #include "simulator.c"
 #include "decoder.c"
+#include "renderer.c"
 
 
 

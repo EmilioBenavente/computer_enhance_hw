@@ -78,38 +78,6 @@ Win32FreeFile(file_result* Contents)
 }
 
 file_scope void
-Win32RenderTestImage(win32_display_buffer* Buffer)
-{
-
-  s8* Row = (s8*)Buffer->Memory;
-  for(s32 Y = 0; Y < Buffer->Height; Y++)
-  {
-    s32* Pixel = (s32*)Row;
-    for(s32 X = 0; X < Buffer->Width; X++)
-    {
-      *Pixel++ = (X << 8) | (Y << 16);
-    }
-    Row += Buffer->Stride;
-  }
-}
-
-file_scope void
-Win32RenderBlankImage(win32_display_buffer* Buffer)
-{
-
-  s8* Row = (s8*)Buffer->Memory;
-  for(s32 Y = 0; Y < Buffer->Height; Y++)
-  {
-    s32* Pixel = (s32*)Row;
-    for(s32 X = 0; X < Buffer->Width; X++)
-    {
-      *Pixel++ = 0;
-    }
-    Row += Buffer->Stride;
-  }
-}
-
-file_scope void
 Win32DrawDisplayRegion(win32_display_buffer* Buffer, s32 Width, s32 Height)
 {
   Buffer->Width  = Width;
@@ -127,7 +95,7 @@ Win32DrawDisplayRegion(win32_display_buffer* Buffer, s32 Width, s32 Height)
 
   Buffer->Info.bmiHeader.biSize         = sizeof(Buffer->Info.bmiHeader);
   Buffer->Info.bmiHeader.biWidth        = Buffer->Width;
-  Buffer->Info.bmiHeader.biHeight       = Buffer->Height;
+  Buffer->Info.bmiHeader.biHeight       = -Buffer->Height;
   Buffer->Info.bmiHeader.biPlanes       = 2;
   Buffer->Info.bmiHeader.biBitCount     = Buffer->BytesPerPixel * 8;
   Buffer->Info.bmiHeader.biCompression  = BI_RGB;
@@ -212,9 +180,7 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
 
   if(MainWindow)
   {
-    ///////////////////////////////
     //@NOTE(Emilio): Simulator Code
-    ///////////////////////////////
     sim_cpu SimCPU = {};
 
     file_result FileResult = Win32ReadEntireFile(HW_FILE);
@@ -230,6 +196,15 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
 
     GlobalDisplayBuffer.BytesPerPixel = 4;
     Win32DrawDisplayRegion(&GlobalDisplayBuffer, WND_WIDTH, WND_HEIGHT);
+
+
+    //@NOTE(Emilio): Initialize Render Code
+    render_display_buffer RenderDisplayBuffer = {};
+    RenderDisplayBuffer.Width = GlobalDisplayBuffer.Width;
+    RenderDisplayBuffer.Height = GlobalDisplayBuffer.Height;
+    RenderDisplayBuffer.BytesPerPixel = GlobalDisplayBuffer.BytesPerPixel;
+    RenderDisplayBuffer.Stride = GlobalDisplayBuffer.Stride;
+    RenderDisplayBuffer.Memory = GlobalDisplayBuffer.Memory;
 
     //@NOTE(Emilio): Start of Game Loop
     while(GlobalIsGameRunning)
@@ -258,7 +233,14 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
       }
 
       //@NOTE(Emilio): Rendering Code.
-      Win32RenderBlankImage(&GlobalDisplayBuffer);
+      RendererRenderBlankImage(&RenderDisplayBuffer);
+      RendererRenderBox(&RenderDisplayBuffer, 0, 0, WND_WIDTH, WND_HEIGHT, 0.66f, 0.00f, 0.66f);
+      RendererRenderDisplayBox(&RenderDisplayBuffer, (WND_WIDTH / 3) * 2,
+                    WND_HEIGHT - (WND_HEIGHT / 5), 500, 100, 5,
+                    0.17f, 0.17f, 0.17f,
+                    0.1f, 0.1f, 0.1f);
+
+
       HDC DeviceContext = GetDC(MainWindow);
       Win32WindowResize(DeviceContext, &GlobalDisplayBuffer);
       ReleaseDC(MainWindow, DeviceContext);
