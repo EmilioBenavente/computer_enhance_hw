@@ -1,11 +1,19 @@
 #include "win32_app.h"
 
 file_scope void
-Win32DebugPrintInstruction(decoder_context* Context)
+Win32DebugPrintInstruction(decoder_context* Context, char* Result)
 {
-  char DebugText[256];
-  sprintf(DebugText, "%s ; %s\n", Context->CurrentInstruction, Context->Comments);
-  OutputDebugStringA(DebugText);
+  if(Result)
+  {
+    sprintf(Result, "%s ;%s\ntest", Context->CurrentInstruction, Context->Comments);
+    OutputDebugStringA(Result);
+  }
+  else
+  {
+    char DebugText[256];
+    sprintf(DebugText, "%s ;%s\n", Context->CurrentInstruction, Context->Comments);
+    OutputDebugStringA(DebugText);
+  }
 }
 
 file_scope file_result
@@ -188,7 +196,8 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
 
     decoder_context DecoderContext = {};
     DecoderDecodeInstruction(&DecoderContext, SimMemory, SimCPU.PC);
-    Win32DebugPrintInstruction(&DecoderContext);
+    char DebugText[256];
+    Win32DebugPrintInstruction(&DecoderContext, DebugText);
 
 
     //@NOTE(Emilio): Initialize Globals.
@@ -239,6 +248,9 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
                     WND_HEIGHT - (WND_HEIGHT / 5), 500, 100, 5,
                     0.17f, 0.17f, 0.17f,
                     0.1f, 0.1f, 0.1f);
+
+      RendererRenderString(&RenderDisplayBuffer, (WND_WIDTH / 3) * 2 + 10,
+                    WND_HEIGHT - (WND_HEIGHT / 5) + 55, DebugText);
 
 
       HDC DeviceContext = GetDC(MainWindow);

@@ -1,6 +1,8 @@
 #if !defined(_RENDERER_H_)
 #define _RENDERER_H_
 
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
 #include "ecb_utils.h"
 
 typedef plex

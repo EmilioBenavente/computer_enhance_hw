@@ -100,4 +100,83 @@ RendererRenderDisplayBox(render_display_buffer* Buffer, s32 XPos, s32 YPos,
 
 }
 
+file_scope void
+RendererRenderString(render_display_buffer* Buffer, s32 XPos, s32 YPos, char* String)
+{
+  XPos += 30;
+  local_persist char FontBuffer[MegaBytes(2)];
+  local_persist b32 IsFontInit;
+
+  if(!IsFontInit)
+  {
+    fread(FontBuffer, 1, MegaBytes(2), fopen("c:/Windows/Fonts/times.ttf", "rb"));
+    IsFontInit = 1;
+  }
+
+  stbtt_fontinfo Font;
+  stbtt_InitFont(&Font, FontBuffer, 0);
+
+  u32 OriginalXPos = XPos;
+  while(*String)
+  {
+    if(*String == ' ')
+    {
+      XPos += 15;
+      String++;
+      continue;
+    }
+    if(*String == '\n')
+    {
+      YPos += 32;
+      XPos = OriginalXPos;
+      String++;
+      continue;
+    }
+    s32 FontWidth = 0;
+    s32 FontHeight = 0;
+    s32 FontX = 0;
+    s32 FontY = 0;
+    u8* Bitmap = stbtt_GetCodepointBitmap(&Font, 0,
+                                          stbtt_ScaleForPixelHeight(&Font, 32),
+                                          *String, &FontWidth, &FontHeight, &FontX, &FontY);
+
+    if(XPos+FontX < 0)
+    {
+      XPos = 0;
+    }
+    if(XPos+FontX > Buffer->Width)
+    {
+      break;
+    }
+
+    if(YPos+FontY < 0)
+    {
+      YPos = 0;
+    }
+
+    if(YPos+FontY > Buffer->Height)
+    {
+      break;
+    }
+
+
+    s8* Row = (s8*)Buffer->Memory + (Buffer->Stride * (YPos+FontY)) + (Buffer->BytesPerPixel*(XPos+FontX));
+    for(s32 Y = 0; Y < FontHeight; Y++)
+    {
+      s32* Pixel = (s32*)Row;
+      for(s32 X = 0; X < FontWidth; X++)
+      {
+        u8 Value = Bitmap[Y*FontWidth + X];
+        *Pixel++ = (Value << 16) |
+                   (Value << 8)  |
+                   (Value << 0);
+      }
+      Row += Buffer->Stride;
+    }
+
+    XPos += FontWidth;
+    String++;
+    stbtt_FreeBitmap(Bitmap, 0);
+  }
+}
 
