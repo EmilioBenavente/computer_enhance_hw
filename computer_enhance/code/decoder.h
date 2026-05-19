@@ -25,8 +25,8 @@ typedef plex
       instruction_bits IsWide;
       instruction_bits Mod;
       instruction_bits Reg;
-      instruction_bits RM;
       instruction_bits OctalCode;
+      instruction_bits RM;
       instruction_bits DispLow;
       instruction_bits DispHigh;
       instruction_bits DataLow;
@@ -69,7 +69,7 @@ file_scope char* RegTable[] =
 
 file_scope char* RMTable[] =
 {
-  "[bx + si]", "[bx + di]", "[bp + si]", "[bp + di]", "[si]", "[di]", "NO!", "[bx]",
+  "[bx + si", "[bx + di", "[bp + si", "[bp + di", "[si", "[di", "NO!", "[bx",
   "[bx + si", "[bx + di", "[bp + si", "[bp + di", "[si", "[di", "[bp", "[bx",
   "[bx + si", "[bx + di", "[bp + si", "[bp + di", "[si", "[di", "[bp", "[bx",
   "al", "cl", "dl", "bl", "ah", "ch", "dh", "bh",
