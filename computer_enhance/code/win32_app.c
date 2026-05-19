@@ -224,29 +224,45 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
           case WM_SYSKEYUP:
           case WM_SYSKEYDOWN:
           {
-            if(Message.wParam == VK_ESCAPE)
+            b32 IsKeyDown = Message.lParam & (1 << 31);
+            b32 IsKeyDownLastFrame = Message.lParam & (1 << 30) != 0;
+
+            if(IsKeyDown != IsKeyDownLastFrame)
             {
-              GlobalIsGameRunning = 0;
-            }
-            if(Message.wParam == VK_SPACE)
-            {
-              GlobalIsResetAsserted = 1;
-            }
-            if(Message.wParam == VK_LEFT)
-            {
-              GlobalSleepValue -= 50;
-            }
-            if(Message.wParam == VK_RIGHT)
-            {
-              GlobalSleepValue += 50;
-            }
-            if(Message.wParam == VK_UP)
-            {
-              GlobalMemoryOffset -= 50;
-            }
-            if(Message.wParam == VK_DOWN)
-            {
-              GlobalMemoryOffset += 50;
+              if(Message.wParam == VK_ESCAPE)
+              {
+                GlobalIsGameRunning = 0;
+              }
+              if(Message.wParam == VK_SPACE)
+              {
+                char Buffer[256];
+                sprintf(Buffer, "Key States [%d, %d]\n", IsKeyDown, IsKeyDownLastFrame);
+                OutputDebugStringA(Buffer);
+                if(IsKeyDown)
+                {
+                  GlobalIsGamePaused = !GlobalIsGamePaused;
+                }
+              }
+              if(Message.wParam == 'R')
+              {
+                GlobalIsResetAsserted = 1;
+              }
+              if(Message.wParam == VK_LEFT)
+              {
+                GlobalSleepValue -= 50;
+              }
+              if(Message.wParam == VK_RIGHT)
+              {
+                GlobalSleepValue += 50;
+              }
+              if(Message.wParam == VK_UP)
+              {
+                GlobalMemoryOffset -= 50;
+              }
+              if(Message.wParam == VK_DOWN)
+              {
+                GlobalMemoryOffset += 50;
+              }
             }
           }
           default:
@@ -286,11 +302,21 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
 
       decoder_context DecoderContext = {};
       char DebugText[256];
-      if(SimCPU.PC < FileResult.ContentSize)
+
+      if(GlobalIsGamePaused)
+      {
+        DecoderDecodeInstruction(&DecoderContext, SimMemory, SimCPU.PC);
+        Win32DebugPrintInstruction(&DecoderContext, DebugText);
+      }
+      else if(SimCPU.PC < FileResult.ContentSize - 60)
       {
         DecoderDecodeInstruction(&DecoderContext, SimMemory, SimCPU.PC);
         Win32DebugPrintInstruction(&DecoderContext, DebugText);
         SimCPU.PC += DecoderContext.BytesRead;
+      }
+      else
+      {
+        SimCPU.PC = 0;
       }
 
 
@@ -302,10 +328,15 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
                     (WND_HEIGHT/32), 900, 800, 5,
                     0.17f, 0.17f, 0.17f,
                     0.1f, 0.1f, 0.1f);
+      u32 BytesToRead = DecoderContext.BytesRead;
+      if(BytesToRead > 10 || BytesToRead == 0)
+      {
+        BytesToRead = 1;
+      }
       RendererRenderMemoryWindow(&RenderDisplayBuffer, (WND_WIDTH/2) + 5,
                     (WND_HEIGHT/32) + 5, 890, 790, GlobalMemoryOffset,
                     SimCPU.PC - DecoderContext.BytesRead,
-                    DecoderContext.BytesRead);
+                    BytesToRead);
 
 
 //@NOTE(Emilio): Simulated Decoder.
@@ -313,6 +344,9 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
                     (WND_HEIGHT / 32), 800, 400, 5,
                     0.17f, 0.17f, 0.17f,
                     0.1f, 0.1f, 0.1f);
+      RendererRenderDecoderWindow(&RenderDisplayBuffer, (WND_WIDTH/24) + 5,
+                    (WND_HEIGHT/32) + 5, 790, 390, &DecoderContext);
+
 
 //@NOTE(Emilio): Simulated CPU.
       RendererRenderDisplayBox(&RenderDisplayBuffer, (WND_WIDTH / 24),
@@ -328,7 +362,7 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
                     0.1f, 0.1f, 0.1f);
 
       RendererRenderString(&RenderDisplayBuffer, ((WND_WIDTH / 3) * 2 + 10) + (WND_WIDTH/24),
-                    WND_HEIGHT - (WND_HEIGHT / 5) + 55, DebugText);
+                    WND_HEIGHT - (WND_HEIGHT / 5) + 55, DebugText, 24);
 
 //@NOTE(Emilio): Speed Window.
       RendererRenderDisplayBox(&RenderDisplayBuffer, ((WND_WIDTH / 3) * 2) + (WND_WIDTH/24),
@@ -337,9 +371,16 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
                     0.1f, 0.1f, 0.1f);
 
       char SleepText[256];
-      sprintf(SleepText, "The Delay Value is %d.\n", GlobalSleepValue);
+      if(GlobalIsGamePaused)
+      {
+        sprintf(SleepText, "The Simulation is Paused!\n");
+      }
+      else
+      {
+        sprintf(SleepText, "The Delay Value is %d.\n", GlobalSleepValue);
+      }
       RendererRenderString(&RenderDisplayBuffer, ((WND_WIDTH / 3) * 2) + (WND_WIDTH/24),
-                    WND_HEIGHT - (WND_HEIGHT / 10) + 30, SleepText);
+                    WND_HEIGHT - (WND_HEIGHT / 10) + 30, SleepText, 24);
 
 
 

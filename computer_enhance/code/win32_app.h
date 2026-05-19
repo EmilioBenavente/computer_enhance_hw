@@ -35,6 +35,7 @@ typedef plex
 
 //@NOTE(Emilio): Globals
 global_variable b32 GlobalIsGameRunning;
+global_variable b32 GlobalIsGamePaused;
 global_variable b32 GlobalIsResetAsserted;
 global_variable s32 GlobalSleepValue;
 global_variable s32 GlobalMemoryOffset;

@@ -160,35 +160,35 @@ file_scope void
 DecoderParseInstructionFromFields(decoder_context* Context)
 {
   instruction_fields* FieldData = &Context->InstructionFields;
-  char RegString[24];
   char DataString[24];
-  char RMString[24];
-  char* RMStringPtr = RMString;
+  char* RMStringPtr = FieldData->RMString;
 
   Context->InstructionWritePtr = Context->CurrentInstruction;
   Context->InstructionWritePtr +=
     sprintf(Context->InstructionWritePtr, "%s ", FieldData->OpCodeMnemonic);
 
 
-  s16 Disp = (s8)FieldData->DispLow.Value;
+  FieldData->Displacement = (s8)FieldData->DispLow.Value;
   if(FieldData->DispHigh.Value ||
     (FieldData->Mod.Value == 0 && FieldData->RM.Value == 7) ||
     (FieldData->Mod.Value == 0x2))
   {
-    Disp = (s16)(((u8)FieldData->DispHigh.Value << 8) | (u8)Disp);
+    FieldData->Displacement = (s16)(((u8)FieldData->DispHigh.Value << 8) |
+                                    (u8)FieldData->Displacement);
   }
 
-  s16 Data = (s8)FieldData->DataLow.Value;
+  FieldData->Data = (s8)FieldData->DataLow.Value;
   if(FieldData->DataHigh.Value &&
     ((FieldData->IsWide.Value && !FieldData->IsDestination.Value) ||
     (FieldData->IsWide.Value)))
   {
-    Data = (s16)(((u8)FieldData->DataHigh.Value << 8) | (u8)Data);
+    FieldData->Data = (s16)(((u8)FieldData->DataHigh.Value << 8) |
+                 (u8)FieldData->Data);
   }
 
   if(FieldData->Reg.IsExists)
   {
-    sprintf(RegString, "%s",
+    sprintf(FieldData->RegString, "%s",
             RegTable[FieldData->Reg.Value + (8 * FieldData->IsWide.Value)]);
   }
 
@@ -212,7 +212,7 @@ DecoderParseInstructionFromFields(decoder_context* Context)
       sprintf(Prefix, "");
     }
 
-    sprintf(DataString, "%s%d", Prefix, Data);
+    sprintf(DataString, "%s%d", Prefix, FieldData->Data);
   }
 
   if(FieldData->RM.IsExists)
@@ -220,7 +220,7 @@ DecoderParseInstructionFromFields(decoder_context* Context)
     if(FieldData->Mod.Value == 0 && FieldData->RM.Value == 6)
     {
       RMStringPtr +=
-        sprintf(RMStringPtr, "[%d]", Disp);
+        sprintf(RMStringPtr, "[%d]", FieldData->Displacement);
     }
     else
     {
@@ -233,17 +233,17 @@ DecoderParseInstructionFromFields(decoder_context* Context)
 
       if(FieldData->Mod.Value != 3)
       {
-        if(Disp == 0)
+        if(FieldData->Displacement == 0)
         {
           RMStringPtr += sprintf(RMStringPtr, "]");
         }
-        else if(Disp < 0)
+        else if(FieldData->Displacement < 0)
         {
-          RMStringPtr += sprintf(RMStringPtr, " - %d]", -Disp);
+          RMStringPtr += sprintf(RMStringPtr, " - %d]", -FieldData->Displacement);
         }
         else
         {
-          RMStringPtr += sprintf(RMStringPtr, " + %d]", Disp);
+          RMStringPtr += sprintf(RMStringPtr, " + %d]", FieldData->Displacement);
         }
       }
     }
@@ -251,25 +251,25 @@ DecoderParseInstructionFromFields(decoder_context* Context)
 
   if(FieldData->DataLow.IsExists && !FieldData->Reg.IsExists)
   {
-    sprintf(RegString, "%s", DataString);
+    sprintf(FieldData->RegString, "%s", DataString);
   }
 
   b32 IsDestination = FieldData->IsDestination.Value;
   if(FieldData->DataLow.IsExists && FieldData->Reg.IsExists)
   {
-    sprintf(RMString, "[%s]", DataString);
+    sprintf(FieldData->RMString, "[%s]", DataString);
     IsDestination = !IsDestination;
   }
 
   if(IsDestination)
   {
     Context->InstructionWritePtr +=
-      sprintf(Context->InstructionWritePtr, "%s, %s", RegString, RMString);
+      sprintf(Context->InstructionWritePtr, "%s, %s", FieldData->RegString, FieldData->RMString);
   }
   else
   {
     Context->InstructionWritePtr +=
-      sprintf(Context->InstructionWritePtr, "%s, %s", RMString, RegString);
+      sprintf(Context->InstructionWritePtr, "%s, %s", FieldData->RMString, FieldData->RegString);
   }
 
 }

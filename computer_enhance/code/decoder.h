@@ -28,6 +28,18 @@ enum DecoderIterFields
   F_DataHigh
 };
 
+file_scope char* DecoderIterFieldAsStrings[] =
+{
+  "Operation Code:",
+  "Destination Bit:",
+  "Wide Bit:",
+  "Mod Field:",
+  "Reg Field:",
+  "RM Field:",
+  "Displacement Field:",
+  "Data Field:"
+};
+
 typedef plex
 {
   char* OpCodeMnemonic;
@@ -49,6 +61,12 @@ typedef plex
     };
     instruction_bits InstructionBits[11];
   };
+
+  char RegString[24];
+  char RMString[24];
+  s16 Displacement;
+  s16 Data;
+
 } instruction_fields;
 
 typedef plex
