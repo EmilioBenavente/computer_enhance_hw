@@ -34,7 +34,7 @@ DecoderParseInstructionFields(decoder_context* Context, u8* InstructionPtr)
     u8 ShiftCount = 8 - SimISA[Iter].OpCode.BitCount;
     u8 TestByte = InstructionByte >> ShiftCount;
 
-    if(TestByte == SimISA[Iter].OpCode.Bits)
+    if(TestByte == SimISA[Iter].OpCode.Value)
     {
       if(Iter == 3 || Iter == 4)
       {
@@ -48,7 +48,7 @@ DecoderParseInstructionFields(decoder_context* Context, u8* InstructionPtr)
         InstructionData.IsDisplacement.IsExists  = 1;
         InstructionData.IsDisplacement.BitCount  = 1;
         InstructionData.IsDisplacement.ValueMask = 0x1;
-        InstructionData.IsDisplacement.Bits = 0x1;
+        InstructionData.IsDisplacement.Value = 0x1;
       }
 
 
@@ -63,7 +63,8 @@ DecoderParseInstructionFields(decoder_context* Context, u8* InstructionPtr)
         InstructionData.OpCodeMnemonic = SimISA[Iter].OpCodeMnemonic;
         InstructionData.OpCode = SimISA[Iter].OpCode;
 
-        for(u32 DecoderIter = 1; DecoderIter < DecoderFieldCount; DecoderIter++)
+        u32 DecoderIter = F_DisplacementBit;
+        while(DecoderIter < DecoderFieldCount)
         {
           if(SimISA[Iter].InstructionBits[DecoderIter].IsExists)
           {
@@ -76,59 +77,68 @@ DecoderParseInstructionFields(decoder_context* Context, u8* InstructionPtr)
 
 
             u8 FieldOffset =
-              (Context->BitsReadInByte + SimISA[Iter].InstructionBits[DecoderIter].BitCount);
+              (Context->BitsReadInByte +
+              SimISA[Iter].InstructionBits[DecoderIter].BitCount);
             u8 DataPos = 8 - FieldOffset;
             u8 DataValue = (InstructionByte &
-              (SimISA[Iter].InstructionBits[DecoderIter].ValueMask << DataPos)) >> (DataPos);
+              (SimISA[Iter].InstructionBits[DecoderIter].ValueMask <<
+              DataPos)) >> (DataPos);
 
-            if(DecoderIter == 6)
+            if(DecoderIter == F_RM)
             {
-              if((InstructionData.Mod.Bits != 3) ||
-                 (InstructionData.Mod.Bits == 0 && InstructionData.RM.Bits == 6))
+              if((InstructionData.Mod.Value != 3) ||
+                 (InstructionData.Mod.Value == 0 &&
+                InstructionData.RM.Value == 6))
               {
                 //@INCOMPLETE(Emilio): Process Disp at least 8 bit Field
               }
               else
               {
-                DecoderIter = 8;
+                DecoderIter = F_DispLow;
                 continue;
               }
             }
 
-            if(DecoderIter == 7)
+            if(DecoderIter == F_DispLow)
             {
-              if((InstructionData.Mod.Bits == 1) ||
-                 (InstructionData.Mod.Bits == 2) ||
-                 (InstructionData.Mod.Bits == 0 && InstructionData.RM.Bits == 6))
+              if((InstructionData.Mod.Value == 1) ||
+                 (InstructionData.Mod.Value == 2) ||
+                 (InstructionData.Mod.Value == 0 &&
+                InstructionData.RM.Value == 6))
               {
                 //@INCOMPLETE(Emilio): Process Disp 16 bit Field
               }
               else
               {
+                DecoderIter = F_DataLow;
                 continue;
               }
             }
 
 
-            if(DecoderIter == 8)
+            if(DecoderIter == F_DispHigh)
             {
-              if((InstructionData.Mod.Bits == 2) ||
-                 (InstructionData.Mod.Bits == 0 && InstructionData.RM.Bits == 6))
+              if((InstructionData.Mod.Value == 2) ||
+                 (InstructionData.Mod.Value == 0 &&
+                InstructionData.RM.Value == 6))
               {
                 //@INCOMPLETE(Emilio): Process Disp 16 bit Field
               }
               else
               {
+                DecoderIter = F_DataLow;
                 continue;
               }
             }
 
-            if(DecoderIter == 10 && InstructionData.IsWide.Bits == 0)
+            if(DecoderIter == F_DataHigh &&
+              InstructionData.IsWide.Value == 0)
             {
+                DecoderIter++;
                 continue;
             }
 
-            InstructionData.InstructionBits[DecoderIter].Bits = DataValue;
+            InstructionData.InstructionBits[DecoderIter].Value = DataValue;
 
             DecoderIncrementBitsBytesRead(Context,
               SimISA[Iter].InstructionBits[DecoderIter].BitCount);
@@ -139,6 +149,8 @@ DecoderParseInstructionFields(decoder_context* Context, u8* InstructionPtr)
               InstructionByte = *InstructionPtr;
             }
           }
+
+          DecoderIter++;
         }
       }
       break;
@@ -162,26 +174,26 @@ DecoderParseInstructionFromFields(decoder_context* Context)
     sprintf(Context->InstructionWritePtr, "%s ", FieldData->OpCodeMnemonic);
 
 
-  s16 Disp = (s8)FieldData->DispLow.Bits;
-  if(FieldData->DispHigh.Bits ||
-    (FieldData->Mod.Bits == 0 && FieldData->RM.Bits == 7) ||
-    (FieldData->Mod.Bits == 0x2))
+  s16 Disp = (s8)FieldData->DispLow.Value;
+  if(FieldData->DispHigh.Value ||
+    (FieldData->Mod.Value == 0 && FieldData->RM.Value == 7) ||
+    (FieldData->Mod.Value == 0x2))
   {
-    Disp = (s16)(((u8)FieldData->DispHigh.Bits << 8) | (u8)Disp);
+    Disp = (s16)(((u8)FieldData->DispHigh.Value << 8) | (u8)Disp);
   }
 
-  s16 Data = (s8)FieldData->DataLow.Bits;
-  if(FieldData->DataHigh.Bits &&
-    ((FieldData->IsWide.Bits && FieldData->IsDisplacement.Bits) ||
-    (FieldData->IsWide.Bits)))
+  s16 Data = (s8)FieldData->DataLow.Value;
+  if(FieldData->DataHigh.Value &&
+    ((FieldData->IsWide.Value && FieldData->IsDisplacement.Value) ||
+    (FieldData->IsWide.Value)))
   {
-    Data = (s16)(((u8)FieldData->DataHigh.Bits << 8) | (u8)Data);
+    Data = (s16)(((u8)FieldData->DataHigh.Value << 8) | (u8)Data);
   }
 
   if(FieldData->Reg.IsExists)
   {
     sprintf(RegString, "%s",
-            RegTable[FieldData->Reg.Bits + (8 * FieldData->IsWide.Bits)]);
+            RegTable[FieldData->Reg.Value + (8 * FieldData->IsWide.Value)]);
   }
 
   if(FieldData->DataLow.IsExists)
@@ -190,7 +202,7 @@ DecoderParseInstructionFromFields(decoder_context* Context)
 
     if(!FieldData->Reg.IsExists)
     {
-      if(FieldData->IsWide.Bits)
+      if(FieldData->IsWide.Value)
       {
         sprintf(Prefix, "word ");
       }
@@ -209,7 +221,7 @@ DecoderParseInstructionFromFields(decoder_context* Context)
 
   if(FieldData->RM.IsExists)
   {
-    if(FieldData->Mod.Bits == 0 && FieldData->RM.Bits == 6)
+    if(FieldData->Mod.Value == 0 && FieldData->RM.Value == 6)
     {
       RMStringPtr +=
         sprintf(RMStringPtr, "[%d]", Disp);
@@ -217,12 +229,13 @@ DecoderParseInstructionFromFields(decoder_context* Context)
     else
     {
       u8 WideOffest =
-        FieldData->Mod.Bits == 3 && FieldData->IsWide.Bits ? 8 : 0;
+        FieldData->Mod.Value == 3 && FieldData->IsWide.Value ? 8 : 0;
       RMStringPtr +=
         sprintf(RMStringPtr, "%s",
-              RMTable[(FieldData->RM.Bits + (8 * FieldData->Mod.Bits)) + WideOffest]);
+        RMTable[(FieldData->RM.Value + (8 * FieldData->Mod.Value)) +
+                WideOffest]);
 
-      if(FieldData->Mod.Bits != 3)
+      if(FieldData->Mod.Value != 3)
       {
         if(Disp == 0)
         {
@@ -245,7 +258,7 @@ DecoderParseInstructionFromFields(decoder_context* Context)
     sprintf(RegString, "%s", DataString);
   }
 
-  b32 IsDisplacement = FieldData->IsDisplacement.Bits;
+  b32 IsDisplacement = FieldData->IsDisplacement.Value;
   if(FieldData->DataLow.IsExists && FieldData->Reg.IsExists)
   {
     sprintf(RMString, "[%s]", DataString);
@@ -275,6 +288,6 @@ DecoderDecodeInstruction(decoder_context* Context, void* MemoryChipPtr,
   DecoderParseInstructionFields(Context, ((u8*)MemoryChipPtr + MemoryAddress));
   DecoderParseInstructionFromFields(Context);
 
-  //@NOTE(Emilio): Printing the Instruction
-  DecoderAddCommentToEndOfInstruction(Context, "The Following is a mov Instruction.");
+  char Comment[256];
+  sprintf(Comment, "This is Instruction at Mem[0x%X]", MemoryAddress); DecoderAddCommentToEndOfInstruction(Context, Comment);
 }

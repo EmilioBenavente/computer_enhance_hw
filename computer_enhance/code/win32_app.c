@@ -255,8 +255,7 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
                     0.17f, 0.17f, 0.17f,
                     0.1f, 0.1f, 0.1f);
       RendererRenderMemoryWindow(&RenderDisplayBuffer, (WND_WIDTH/2) + 5,
-                    (WND_HEIGHT/32) + 5, 890, 790);
- 
+                    (WND_HEIGHT/32) + 5, 890, 790, 0);
 
 
 //@NOTE(Emilio): Simulated Decoder.
@@ -280,7 +279,6 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
 
       RendererRenderString(&RenderDisplayBuffer, ((WND_WIDTH / 3) * 2 + 10) + (WND_WIDTH/24),
                     WND_HEIGHT - (WND_HEIGHT / 5) + 55, DebugText);
-
 
 
       HDC DeviceContext = GetDC(MainWindow);

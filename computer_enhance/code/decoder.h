@@ -8,10 +8,25 @@
 typedef plex
 {
   b32 IsExists;
-  u8 Bits;
+  u8 Value;
   u8 BitCount;
   u8 ValueMask;
 } instruction_bits;
+
+enum DecoderIterFields
+{
+  F_OpCode = 0,
+  F_DisplacementBit,
+  F_WideBit,
+  F_Mod,
+  F_Reg,
+  F_OctalCode,
+  F_RM,
+  F_DispLow,
+  F_DispHigh,
+  F_DataLow,
+  F_DataHigh
+};
 
 typedef plex
 {

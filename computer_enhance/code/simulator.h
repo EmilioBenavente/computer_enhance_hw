@@ -3,7 +3,7 @@
 
 #include "ecb_utils.h"
 
-#define HW_FILE "C:/SpiderEnv/computer_enhance_source/computer_enhance/perfaware/part1/listing_0041_add_sub_cmp_jnz"
+#define HW_FILE "C:/SpiderEnv/computer_enhance_source/computer_enhance/perfaware/part1/listing_0040_challenge_movs"
 
 file_scope u8 SimMemory[MegaBytes(1)];
 

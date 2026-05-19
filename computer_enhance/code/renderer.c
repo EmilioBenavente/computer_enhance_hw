@@ -121,7 +121,7 @@ RendererRenderString(render_display_buffer* Buffer, s32 XPos, s32 YPos, char* St
   {
     if(*String == ' ')
     {
-      XPos += 15;
+      XPos += 10;
       String++;
       continue;
     }
@@ -137,7 +137,7 @@ RendererRenderString(render_display_buffer* Buffer, s32 XPos, s32 YPos, char* St
     s32 FontX = 0;
     s32 FontY = 0;
     u8* Bitmap = stbtt_GetCodepointBitmap(&Font, 0,
-                                          stbtt_ScaleForPixelHeight(&Font, 32),
+                                          stbtt_ScaleForPixelHeight(&Font, 24),
                                           *String, &FontWidth, &FontHeight, &FontX, &FontY);
 
     if(XPos+FontX < 0)
@@ -183,7 +183,7 @@ RendererRenderString(render_display_buffer* Buffer, s32 XPos, s32 YPos, char* St
 //@INCOMPLETE(Emilio): This is forced to use 8x16 Grid for now.
 file_scope void
 RendererRenderMemoryWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
-                           s32 TempWidth, s32 TempHeight)
+                           s32 TempWidth, s32 TempHeight, u32 MemoryAddress)
 {
   s32 Width = TempWidth / 16;
   s32 Height = TempHeight / 8;
@@ -192,11 +192,11 @@ RendererRenderMemoryWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
   {
     for(u32 XIter = 0; XIter < 16; XIter++)
     {
-      r32 Color = (r32)SimMemory[YIter*16+XIter + 650] / 255.0f;
+      r32 Color = (r32)SimMemory[YIter*16+XIter + MemoryAddress] / 255.0f;
       RendererRenderBox(Buffer, XPos, YPos,
                     Width, Height, Color, Color, Color);
       char Value[2];
-      Value[0] = SimMemory[YIter*16+XIter+650];
+      Value[0] = SimMemory[YIter*16+XIter+MemoryAddress];
       Value[1] = '\0';
       RendererRenderString(Buffer, XPos-15, YPos+50, Value);
       XPos += Width;
