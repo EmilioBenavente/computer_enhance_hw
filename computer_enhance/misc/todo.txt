@@ -6,3 +6,4 @@
 - Single Step
 - Display Speed of Execution
 - Change Speed of Execution
+- Clean up macros -- no need to put 0's

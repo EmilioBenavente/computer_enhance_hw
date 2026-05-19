@@ -32,7 +32,7 @@ typedef plex
       instruction_bits DataLow;
       instruction_bits DataHigh;
     };
-    instruction_bits InstructionBits[10];
+    instruction_bits InstructionBits[11];
   };
 } instruction_fields;
 

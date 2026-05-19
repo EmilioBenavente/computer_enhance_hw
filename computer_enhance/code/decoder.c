@@ -74,24 +74,42 @@ DecoderParseInstructionFields(decoder_context* Context, u8* InstructionPtr)
               }
               else
               {
-                DecoderIter = 8;
+                DecoderIter = 9;
                 continue;
               }
             }
+
             if(DecoderIter == 7)
             {
-              if((InstructionData.Mod.Bits != 1) ||
+              if((InstructionData.Mod.Bits == 1) ||
+                 (InstructionData.Mod.Bits == 2) ||
                  (InstructionData.Mod.Bits == 0 && InstructionData.RM.Bits == 6))
               {
                 //@INCOMPLETE(Emilio): Process Disp 16 bit Field
               }
               else
               {
-                DecoderIter = 8;
+                DecoderIter = 10;
                 continue;
               }
             }
-            if(DecoderIter == 9 && InstructionData.IsWide.Bits == 0)
+
+
+            if(DecoderIter == 8)
+            {
+              if((InstructionData.Mod.Bits == 2) ||
+                 (InstructionData.Mod.Bits == 0 && InstructionData.RM.Bits == 6))
+              {
+                //@INCOMPLETE(Emilio): Process Disp 16 bit Field
+              }
+              else
+              {
+                DecoderIter = 10;
+                continue;
+              }
+            }
+
+            if(DecoderIter == 10 && InstructionData.IsWide.Bits == 0)
             {
                 continue;
             }
