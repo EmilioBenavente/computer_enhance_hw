@@ -45,10 +45,10 @@ DecoderParseInstructionFields(decoder_context* Context, u8* InstructionPtr)
 
       if(Iter == 4)
       {
-        InstructionData.IsDisplacement.IsExists  = 1;
-        InstructionData.IsDisplacement.BitCount  = 1;
-        InstructionData.IsDisplacement.ValueMask = 0x1;
-        InstructionData.IsDisplacement.Value = 0x1;
+        InstructionData.IsDestination.IsExists  = 1;
+        InstructionData.IsDestination.BitCount  = 1;
+        InstructionData.IsDestination.ValueMask = 0x1;
+        InstructionData.IsDestination.Value = 0x1;
       }
 
 
@@ -92,11 +92,6 @@ DecoderParseInstructionFields(decoder_context* Context, u8* InstructionPtr)
               {
                 //@INCOMPLETE(Emilio): Process Disp at least 8 bit Field
               }
-              else
-              {
-                DecoderIter = F_DispLow;
-                continue;
-              }
             }
 
             if(DecoderIter == F_DispLow)
@@ -132,7 +127,8 @@ DecoderParseInstructionFields(decoder_context* Context, u8* InstructionPtr)
             }
 
             if(DecoderIter == F_DataHigh &&
-              InstructionData.IsWide.Value == 0)
+              (InstructionData.IsWide.Value == 0 ||
+              InstructionData.IsDestination.Value == 1))
             {
                 DecoderIter++;
                 continue;
@@ -184,7 +180,7 @@ DecoderParseInstructionFromFields(decoder_context* Context)
 
   s16 Data = (s8)FieldData->DataLow.Value;
   if(FieldData->DataHigh.Value &&
-    ((FieldData->IsWide.Value && FieldData->IsDisplacement.Value) ||
+    ((FieldData->IsWide.Value && !FieldData->IsDestination.Value) ||
     (FieldData->IsWide.Value)))
   {
     Data = (s16)(((u8)FieldData->DataHigh.Value << 8) | (u8)Data);
@@ -200,7 +196,7 @@ DecoderParseInstructionFromFields(decoder_context* Context)
   {
     char Prefix[5];
 
-    if(!FieldData->Reg.IsExists)
+    if(!FieldData->Reg.IsExists && FieldData->DispLow.Value)
     {
       if(FieldData->IsWide.Value)
       {
@@ -258,14 +254,14 @@ DecoderParseInstructionFromFields(decoder_context* Context)
     sprintf(RegString, "%s", DataString);
   }
 
-  b32 IsDisplacement = FieldData->IsDisplacement.Value;
+  b32 IsDestination = FieldData->IsDestination.Value;
   if(FieldData->DataLow.IsExists && FieldData->Reg.IsExists)
   {
     sprintf(RMString, "[%s]", DataString);
-    IsDisplacement = !IsDisplacement;
+    IsDestination = !IsDestination;
   }
 
-  if(IsDisplacement)
+  if(IsDestination)
   {
     Context->InstructionWritePtr +=
       sprintf(Context->InstructionWritePtr, "%s, %s", RegString, RMString);

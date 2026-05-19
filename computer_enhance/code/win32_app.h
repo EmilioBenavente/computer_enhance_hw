@@ -35,6 +35,9 @@ typedef plex
 
 //@NOTE(Emilio): Globals
 global_variable b32 GlobalIsGameRunning;
+global_variable b32 GlobalIsResetAsserted;
+global_variable s32 GlobalSleepValue;
+global_variable s32 GlobalMemoryOffset;
 global_variable win32_display_buffer GlobalDisplayBuffer;
 
 #endif //@NOTE(Emilio): _WIN32_APP_H_

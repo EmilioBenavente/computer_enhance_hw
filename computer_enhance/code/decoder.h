@@ -36,7 +36,7 @@ typedef plex
     plex
     {
       instruction_bits OpCode;
-      instruction_bits IsDisplacement;
+      instruction_bits IsDestination;
       instruction_bits IsWide;
       instruction_bits Mod;
       instruction_bits Reg;
@@ -73,7 +73,19 @@ file_scope instruction_fields SimISA[] =
   MOV_MEM_TO_ACC,
   MOV_ACC_TO_MEM,
   MOV_RM_TO_SEG,
-  MOV_SEG_TO_RM
+  MOV_SEG_TO_RM,
+
+  ADD_RM_WITH_REG,
+  ADD_IMM_TO_RM,
+  ADD_IMM_TO_ACC,
+
+  SUB_RM_WITH_REG,
+  SUB_IMM_FROM_RM,
+  SUB_IMM_FROM_ACC,
+
+  CMP_RM_AND_REG,
+  CMP_IMM_WITH_RM,
+  CMP_IMM_WITH_ACC
 };
 
 file_scope char* RegTable[] =

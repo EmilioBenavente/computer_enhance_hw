@@ -183,7 +183,8 @@ RendererRenderString(render_display_buffer* Buffer, s32 XPos, s32 YPos, char* St
 //@INCOMPLETE(Emilio): This is forced to use 8x16 Grid for now.
 file_scope void
 RendererRenderMemoryWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
-                           s32 TempWidth, s32 TempHeight, u32 MemoryAddress)
+                           s32 TempWidth, s32 TempHeight, u32 MemoryAddress,
+                           u32 CurrentInstruction, u32 CurrentInstructionRange)
 {
   s32 Width = TempWidth / 16;
   s32 Height = TempHeight / 8;
@@ -192,9 +193,32 @@ RendererRenderMemoryWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
   {
     for(u32 XIter = 0; XIter < 16; XIter++)
     {
-      r32 Color = (r32)SimMemory[YIter*16+XIter + MemoryAddress] / 255.0f;
+      u32 MemoryIndex = YIter*16+XIter + MemoryAddress;
+      r32 ColorR = (r32)0.0f;
+      r32 ColorG = (r32)0.0f;
+      r32 ColorB = (r32)0.0f;
+      if(MemoryIndex == CurrentInstruction)
+      {
+        ColorR = 0.3f;
+        ColorG = 0.61f;
+        ColorB = 0.3f;
+      }
+      else if((MemoryIndex <= CurrentInstruction + CurrentInstructionRange-1) &&
+        (MemoryIndex > CurrentInstruction))
+      {
+        ColorR = 0.1f;
+        ColorG = 0.41f;
+        ColorB = 0.3f;
+      }
+      else
+      {
+        ColorR = (r32)SimMemory[MemoryIndex] / 255.0f;
+        ColorG = (r32)SimMemory[MemoryIndex] / 255.0f;
+        ColorB = (r32)SimMemory[MemoryIndex] / 255.0f;
+      }
+
       RendererRenderBox(Buffer, XPos, YPos,
-                    Width, Height, Color, Color, Color);
+                    Width, Height, ColorR, ColorG, ColorB);
       char Value[2];
       Value[0] = SimMemory[YIter*16+XIter+MemoryAddress];
       Value[1] = '\0';

@@ -197,6 +197,7 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
 
     //@NOTE(Emilio): Initialize Globals.
     GlobalIsGameRunning = 1;
+    GlobalSleepValue = 50;
 
     GlobalDisplayBuffer.BytesPerPixel = 4;
     Win32DrawDisplayRegion(&GlobalDisplayBuffer, WND_WIDTH, WND_HEIGHT);
@@ -227,6 +228,26 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
             {
               GlobalIsGameRunning = 0;
             }
+            if(Message.wParam == VK_SPACE)
+            {
+              GlobalIsResetAsserted = 1;
+            }
+            if(Message.wParam == VK_LEFT)
+            {
+              GlobalSleepValue -= 50;
+            }
+            if(Message.wParam == VK_RIGHT)
+            {
+              GlobalSleepValue += 50;
+            }
+            if(Message.wParam == VK_UP)
+            {
+              GlobalMemoryOffset -= 50;
+            }
+            if(Message.wParam == VK_DOWN)
+            {
+              GlobalMemoryOffset += 50;
+            }
           }
           default:
           {
@@ -234,6 +255,33 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
             DispatchMessage(&Message);
           }
         }
+      }
+
+      if(GlobalSleepValue < 0)
+      {
+        GlobalSleepValue = 0;
+      }
+      if(GlobalSleepValue > 500)
+      {
+        GlobalSleepValue = 500;
+      }
+      if(GlobalMemoryOffset < 0)
+      {
+        GlobalMemoryOffset = 0;
+      }
+      if(GlobalMemoryOffset > (MegaBytes(1) - 64))
+      {
+        GlobalMemoryOffset = (MegaBytes(1) - 64);
+      }
+
+      //@INCOMPLETE(Emilio): Sleep is not grandular and we are not
+      //  picking up a refresh rate yet!
+      Sleep(GlobalSleepValue);
+
+      if(GlobalIsResetAsserted)
+      {
+        SimCPU.PC = 0;
+        GlobalIsResetAsserted = 0;
       }
 
       decoder_context DecoderContext = {};
@@ -255,7 +303,9 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
                     0.17f, 0.17f, 0.17f,
                     0.1f, 0.1f, 0.1f);
       RendererRenderMemoryWindow(&RenderDisplayBuffer, (WND_WIDTH/2) + 5,
-                    (WND_HEIGHT/32) + 5, 890, 790, 0);
+                    (WND_HEIGHT/32) + 5, 890, 790, GlobalMemoryOffset,
+                    SimCPU.PC - DecoderContext.BytesRead,
+                    DecoderContext.BytesRead);
 
 
 //@NOTE(Emilio): Simulated Decoder.
@@ -279,6 +329,18 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
 
       RendererRenderString(&RenderDisplayBuffer, ((WND_WIDTH / 3) * 2 + 10) + (WND_WIDTH/24),
                     WND_HEIGHT - (WND_HEIGHT / 5) + 55, DebugText);
+
+//@NOTE(Emilio): Speed Window.
+      RendererRenderDisplayBox(&RenderDisplayBuffer, ((WND_WIDTH / 3) * 2) + (WND_WIDTH/24),
+                    WND_HEIGHT - (WND_HEIGHT / 10), 300, 50, 5,
+                    0.17f, 0.17f, 0.17f,
+                    0.1f, 0.1f, 0.1f);
+
+      char SleepText[256];
+      sprintf(SleepText, "The Delay Value is %d.\n", GlobalSleepValue);
+      RendererRenderString(&RenderDisplayBuffer, ((WND_WIDTH / 3) * 2) + (WND_WIDTH/24),
+                    WND_HEIGHT - (WND_HEIGHT / 10) + 30, SleepText);
+
 
 
       HDC DeviceContext = GetDC(MainWindow);
