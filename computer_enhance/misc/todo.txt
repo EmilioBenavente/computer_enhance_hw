@@ -1,8 +1,2 @@
 - Reloading
 - Hot-Reloading
-- labels per ui-box
-- decoder view
-- CPU view
-- Single Step
-- Display Speed of Execution
-- Change Speed of Execution

@@ -369,8 +369,7 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
         SimCPU.PC = 0;
       }
 
-      //@NOTE(Emilio): Rendering Code.
-      RendererRenderBox(&RenderDisplayBuffer, 0, 0, WND_WIDTH, WND_HEIGHT, 0.66f, 0.00f, 0.66f);
+      SimCPU.A.Value++;
 
 //@NOTE(Emilio): Memory Window.
       RendererRenderDisplayBox(&RenderDisplayBuffer, (WND_WIDTH/2),
@@ -398,6 +397,9 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
                     WND_HEIGHT - (WND_HEIGHT / 3) - (WND_WIDTH / 16), 800, 400, 5,
                     0.17f, 0.17f, 0.17f,
                     0.1f, 0.1f, 0.1f);
+      RendererRenderCPUWindow(&RenderDisplayBuffer, (WND_WIDTH/24) + 5,
+                    WND_HEIGHT - (WND_HEIGHT / 3) - (WND_WIDTH / 16),
+                    800, 400, &SimCPU);
 
 
 //@NOTE(Emilio): Output Window.
@@ -407,7 +409,7 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
                     0.1f, 0.1f, 0.1f);
 
       RendererRenderString(&RenderDisplayBuffer, ((WND_WIDTH / 3) * 2 + 10) + (WND_WIDTH/24),
-                    WND_HEIGHT - (WND_HEIGHT / 5) + 55, DebugText, 24);
+                    WND_HEIGHT - (WND_HEIGHT / 5) + 55, DebugText, 24, GlobalStringCutoffWidth);
 
 //@NOTE(Emilio): Speed Window.
       RendererRenderDisplayBox(&RenderDisplayBuffer, ((WND_WIDTH / 3) * 2) + (WND_WIDTH/24),
@@ -425,7 +427,7 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
         sprintf(SleepText, "The Delay Value is %d.\n", GlobalSleepValue);
       }
       RendererRenderString(&RenderDisplayBuffer, ((WND_WIDTH / 3) * 2) + (WND_WIDTH/24),
-                    WND_HEIGHT - (WND_HEIGHT / 10) + 30, SleepText, 24);
+                    WND_HEIGHT - (WND_HEIGHT / 10) + 30, SleepText, 24, GlobalStringCutoffWidth);
 
 
 

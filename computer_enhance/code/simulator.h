@@ -42,5 +42,18 @@ typedef plex
   u16 Flags;
 } sim_cpu;
 
+char* CPUFieldsAsStrings[] =
+{
+  "ax", "ah", "al",
+  "bx", "bh", "bl",
+  "cx", "ch", "cl",
+  "dx", "dh", "dl",
+  "sp", "bp", "si",
+  "di", "cs", "ds",
+  "ss", "es", "pc",
+  "F"
+};
+
+global_variable u32 GlobalStringCutoffWidth = 450;
 
 #endif //@NOTE(Emilio): _SIMULATOR_H_

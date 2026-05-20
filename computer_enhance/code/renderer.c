@@ -101,8 +101,10 @@ RendererRenderDisplayBox(render_display_buffer* Buffer, s32 XPos, s32 YPos,
 }
 
 file_scope void
-RendererRenderString(render_display_buffer* Buffer, s32 XPos, s32 YPos, char* String, u32 FontSize)
+RendererRenderString(render_display_buffer* Buffer, s32 XPos, s32 YPos, char* String, u32 FontSize,
+                     u32 CutoffWidth)
 {
+  u32 ExpectedCutoffWidth = XPos + CutoffWidth;
   XPos += 30;
   local_persist char FontBuffer[MegaBytes(2)];
   local_persist b32 IsFontInit;
@@ -144,7 +146,7 @@ RendererRenderString(render_display_buffer* Buffer, s32 XPos, s32 YPos, char* St
     {
       XPos = 0;
     }
-    if(XPos+FontX > Buffer->Width)
+    if(XPos+FontX > ExpectedCutoffWidth)
     {
       break;
     }
@@ -180,7 +182,6 @@ RendererRenderString(render_display_buffer* Buffer, s32 XPos, s32 YPos, char* St
   }
 }
 
-//@INCOMPLETE(Emilio): This is forced to use 8x16 Grid for now.
 file_scope void
 RendererRenderDecoderWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
                            s32 TempWidth, s32 TempHeight, decoder_context* DecoderContext)
@@ -270,16 +271,88 @@ RendererRenderDecoderWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
       sprintf(ValueString, "%s 0x%X\n",
            DecoderIterFieldAsStrings[YIter], DecoderValue);
     }
-    RendererRenderString(Buffer, OriginalXPos-30, YPos+25, ValueString, 24);
+    RendererRenderString(Buffer, OriginalXPos-30, YPos+25, ValueString, 24, GlobalStringCutoffWidth);
 
     YPos += Height;
     XPos = OriginalXPos;
   }
 
   RendererRenderDisplayBox(Buffer, OriginalXPos, OriginalYPos - 30,
-      180, 30, 5, 0.17f, 0.17f, 0.17f, 0.1f, 0.1f, 0.1f);
-  RendererRenderString(Buffer, OriginalXPos-20, OriginalYPos - 10, "Decoder Window\n", 24);
+      180, 30, 2, 0.17f, 0.17f, 0.17f, 0.1f, 0.1f, 0.1f);
+  RendererRenderString(Buffer, OriginalXPos-20, OriginalYPos - 10, "Decoder Window\n", 24, GlobalStringCutoffWidth);
 }
+
+file_scope void
+RendererRenderCPUWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
+                           s32 TempWidth, s32 TempHeight, sim_cpu* CPUContext)
+{
+  u32 YIterCount = 14;
+  u32 XIterCount = 15;
+  s32 Width = TempWidth / (XIterCount+2);
+  s32 Height = TempHeight / YIterCount;
+  s32 OriginalXPos = XPos;
+  s32 OriginalYPos = YPos;
+
+  s32 FieldStringIter = 0;
+  u16* CPUContextIter = (u16*)&CPUContext->A;
+  local_persist u16 TestValue = 0;
+  for(u32 YIter = 0; YIter < YIterCount; YIter++)
+  {
+    u16 RegisterValue = *CPUContextIter;
+    for(u32 XIter = XIterCount; XIter > 0; XIter--)
+    {
+      u32 Value = (r32)((RegisterValue & (1 << XIter-1)) >> XIter-1);
+
+      r32 ColorR = Value ? 1.0f : 0.0f;
+      r32 ColorG = Value ? 1.0f : 0.0f;
+      r32 ColorB = Value ? 1.0f : 0.0f;
+
+      if(YIter < 4 && XIter == 8)
+      {
+        XPos += (2*Width);
+      }
+
+      RendererRenderBox(Buffer, XPos, YPos,
+           Width, Height, ColorR, ColorG, ColorB);
+
+      XPos += Width;
+    }
+
+    char ValueString[64];
+    if(YIter < 4)
+    {
+      sprintf(ValueString, "%s: %d\n",
+          CPUFieldsAsStrings[FieldStringIter++], RegisterValue);
+      RendererRenderString(Buffer, OriginalXPos-30, YPos+25, ValueString, 24, GlobalStringCutoffWidth);
+
+      reg_type RegisterValueAsRegType = *((reg_type*)CPUContextIter);
+      sprintf(ValueString, "%s: %d\n",
+          CPUFieldsAsStrings[FieldStringIter++], RegisterValueAsRegType.High);
+      RendererRenderString(Buffer, OriginalXPos + 100, YPos+25, ValueString, 24, GlobalStringCutoffWidth);
+
+      sprintf(ValueString, "%s: %d\n",
+          CPUFieldsAsStrings[FieldStringIter++], RegisterValueAsRegType.Low);
+      RendererRenderString(Buffer, OriginalXPos + (TempWidth/2) - 80, YPos+25, ValueString, 24, GlobalStringCutoffWidth);
+
+    }
+    else
+    {
+      sprintf(ValueString, "%s: %d\n",
+          CPUFieldsAsStrings[FieldStringIter++], RegisterValue);
+      RendererRenderString(Buffer, OriginalXPos-30, YPos+25, ValueString, 24,GlobalStringCutoffWidth);
+    }
+
+    *CPUContextIter++;
+    YPos += Height;
+    XPos = OriginalXPos;
+  }
+
+  RendererRenderDisplayBox(Buffer, OriginalXPos, OriginalYPos - 20,
+      180, 30, 2, 0.17f, 0.17f, 0.17f, 0.1f, 0.1f, 0.1f);
+  RendererRenderString(Buffer, OriginalXPos-20, OriginalYPos, "CPU Window\n", 24, GlobalStringCutoffWidth);
+
+}
+
 
 
 //@INCOMPLETE(Emilio): This is forced to use 8x16 Grid for now.
@@ -328,8 +401,8 @@ RendererRenderMemoryWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
 
       char ValueAddress[24];
       sprintf(ValueAddress, "0x%X", YIter*16+XIter+MemoryAddress);
-      RendererRenderString(Buffer, XPos-30, YPos+15, ValueAddress, 18);
-      RendererRenderString(Buffer, XPos-15, YPos+50, Value, 24);
+      RendererRenderString(Buffer, XPos-30, YPos+15, ValueAddress, 18, GlobalStringCutoffWidth);
+      RendererRenderString(Buffer, XPos-15, YPos+50, Value, 24, GlobalStringCutoffWidth);
       XPos += Width;
     }
     YPos += Height;
@@ -337,8 +410,8 @@ RendererRenderMemoryWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
   }
 
   RendererRenderDisplayBox(Buffer, OriginalXPos, OriginalYPos - 30,
-      180, 30, 5, 0.17f, 0.17f, 0.17f, 0.1f, 0.1f, 0.1f);
-  RendererRenderString(Buffer, OriginalXPos-20, OriginalYPos - 10, "Memory Window\n", 24);
+      180, 30, 2, 0.17f, 0.17f, 0.17f, 0.1f, 0.1f, 0.1f);
+  RendererRenderString(Buffer, OriginalXPos-20, OriginalYPos - 10, "Memory Window\n", 24, GlobalStringCutoffWidth);
 }
 
 
