@@ -299,7 +299,8 @@ RendererRenderCPUWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
   for(u32 YIter = 0; YIter < YIterCount; YIter++)
   {
     u16 RegisterValue = *CPUContextIter;
-    for(u32 XIter = XIterCount; XIter > 0; XIter--)
+
+    for(u32 XIter = XIterCount+1; XIter > 0; XIter--)
     {
       u32 Value = (r32)((RegisterValue & (1 << XIter-1)) >> XIter-1);
 
@@ -309,7 +310,7 @@ RendererRenderCPUWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
 
       if(YIter < 4 && XIter == 8)
       {
-        XPos += (2*Width);
+        XPos += (Width);
       }
 
       RendererRenderBox(Buffer, XPos, YPos,
