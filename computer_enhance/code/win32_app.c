@@ -190,9 +190,12 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
   {
     //@NOTE(Emilio): Simulator Code
     sim_cpu SimCPU = {};
+    u8 PCUndos[64] = {};
+    s32 PCUndoIter = 0;
 
     file_result FileResult = Win32ReadEntireFile(HW_FILE);
-    SimulatorFlashProgram(SimMemory, FileResult.Contents, SimCPU.PC, FileResult.ContentSize);
+    SimulatorFlashProgram(SimMemory, FileResult.Contents, SimCPU.PC,
+                          FileResult.ContentSize);
 
 
     //@NOTE(Emilio): Initialize Globals.
@@ -210,6 +213,7 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
     RenderDisplayBuffer.Stride = GlobalDisplayBuffer.Stride;
     RenderDisplayBuffer.Memory = GlobalDisplayBuffer.Memory;
     RendererRenderBlankImage(&RenderDisplayBuffer);
+
 
     //@NOTE(Emilio): Start of Game Loop
     while(GlobalIsGameRunning)
@@ -249,11 +253,31 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
               }
               if(Message.wParam == VK_LEFT)
               {
-                GlobalSleepValue -= 50;
+                if(IsKeyDown)
+                {
+                  if(GlobalIsGamePaused)
+                  {
+                    GlobalStepOffset--;
+                  }
+                  else
+                  {
+                    GlobalSleepValue -= 50;
+                  }
+                }
               }
               if(Message.wParam == VK_RIGHT)
               {
-                GlobalSleepValue += 50;
+                if(IsKeyDown)
+                {
+                  if(GlobalIsGamePaused)
+                  {
+                    GlobalStepOffset++;
+                  }
+                  else
+                  {
+                    GlobalSleepValue += 50;
+                  }
+                }
               }
               if(Message.wParam == VK_UP)
               {
@@ -281,6 +305,7 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
       {
         GlobalSleepValue = 500;
       }
+
       if(GlobalMemoryOffset < 0)
       {
         GlobalMemoryOffset = 0;
@@ -297,28 +322,52 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
       if(GlobalIsResetAsserted)
       {
         SimCPU.PC = 0;
+        PCUndoIter = 0;
         GlobalIsResetAsserted = 0;
       }
 
-      decoder_context DecoderContext = {};
       char DebugText[256];
+      decoder_context DecoderContext = {};
+      DecoderDecodeInstruction(&DecoderContext, SimMemory, SimCPU.PC);
+      Win32DebugPrintInstruction(&DecoderContext, DebugText);
+
+      u32 PCInstrcutctionToDraw = SimCPU.PC;
+      if(PCUndoIter > 63)
+      {
+        PCUndoIter = 0;
+      }
 
       if(GlobalIsGamePaused)
       {
-        DecoderDecodeInstruction(&DecoderContext, SimMemory, SimCPU.PC);
-        Win32DebugPrintInstruction(&DecoderContext, DebugText);
-      }
-      else if(SimCPU.PC < FileResult.ContentSize - 60)
-      {
-        DecoderDecodeInstruction(&DecoderContext, SimMemory, SimCPU.PC);
-        Win32DebugPrintInstruction(&DecoderContext, DebugText);
-        SimCPU.PC += DecoderContext.BytesRead;
+        if(GlobalStepOffset > 0)
+        {
+          PCUndos[PCUndoIter++] = DecoderContext.BytesRead;
+          SimCPU.PC += DecoderContext.BytesRead;
+
+          GlobalStepOffset = 0;
+          continue;
+        }
+        else if(GlobalStepOffset < 0)
+        {
+          PCUndoIter--;
+          if(PCUndoIter < 0)
+          {
+            PCUndoIter = 0;
+          }
+          SimCPU.PC -= PCUndos[PCUndoIter];
+          GlobalStepOffset = 0;
+          continue;
+        }
       }
       else
       {
+        PCUndos[PCUndoIter++] = DecoderContext.BytesRead;
+        SimCPU.PC += DecoderContext.BytesRead;
+      }
+      if(SimCPU.PC >= FileResult.ContentSize)
+      {
         SimCPU.PC = 0;
       }
-
 
       //@NOTE(Emilio): Rendering Code.
       RendererRenderBox(&RenderDisplayBuffer, 0, 0, WND_WIDTH, WND_HEIGHT, 0.66f, 0.00f, 0.66f);
@@ -328,15 +377,11 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
                     (WND_HEIGHT/32), 900, 800, 5,
                     0.17f, 0.17f, 0.17f,
                     0.1f, 0.1f, 0.1f);
-      u32 BytesToRead = DecoderContext.BytesRead;
-      if(BytesToRead > 10 || BytesToRead == 0)
-      {
-        BytesToRead = 1;
-      }
+
       RendererRenderMemoryWindow(&RenderDisplayBuffer, (WND_WIDTH/2) + 5,
                     (WND_HEIGHT/32) + 5, 890, 790, GlobalMemoryOffset,
-                    SimCPU.PC - DecoderContext.BytesRead,
-                    BytesToRead);
+                    PCInstrcutctionToDraw,
+                    DecoderContext.BytesRead);
 
 
 //@NOTE(Emilio): Simulated Decoder.
@@ -366,14 +411,14 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
 
 //@NOTE(Emilio): Speed Window.
       RendererRenderDisplayBox(&RenderDisplayBuffer, ((WND_WIDTH / 3) * 2) + (WND_WIDTH/24),
-                    WND_HEIGHT - (WND_HEIGHT / 10), 300, 50, 5,
+                    WND_HEIGHT - (WND_HEIGHT / 10), 450, 50, 5,
                     0.17f, 0.17f, 0.17f,
                     0.1f, 0.1f, 0.1f);
 
       char SleepText[256];
       if(GlobalIsGamePaused)
       {
-        sprintf(SleepText, "The Simulation is Paused!\n");
+        sprintf(SleepText, "The Simulation is Paused! Step Mode On!\n");
       }
       else
       {

@@ -31,8 +31,6 @@ typedef plex
   DWORD ContentSize;
 } file_result;
 
-
-
 //@NOTE(Emilio): Globals
 global_variable b32 GlobalIsGameRunning;
 global_variable b32 GlobalIsGamePaused;
@@ -40,5 +38,9 @@ global_variable b32 GlobalIsResetAsserted;
 global_variable s32 GlobalSleepValue;
 global_variable s32 GlobalMemoryOffset;
 global_variable win32_display_buffer GlobalDisplayBuffer;
+
+//@INCOMPLETE @IMPORTANT(Emilio): This should not be a global!!
+global_variable s32 GlobalStepOffset;
+
 
 #endif //@NOTE(Emilio): _WIN32_APP_H_
