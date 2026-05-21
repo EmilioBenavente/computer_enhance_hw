@@ -67,6 +67,11 @@ typedef plex
   s16 Displacement;
   s16 Data;
 
+  b32 IsExplicitSize;
+  b32 IsImpliedAccReg;
+  b32 IsImpliedImm;
+  b32 IsBranchInstruction;
+
 } instruction_fields;
 
 typedef plex
@@ -103,7 +108,52 @@ file_scope instruction_fields SimISA[] =
 
   CMP_RM_AND_REG,
   CMP_IMM_WITH_RM,
-  CMP_IMM_WITH_ACC
+  CMP_IMM_WITH_ACC,
+
+  RET_WITHIN_SEG,
+  RET_WITHIN_SEG_IMM_TO_SP,
+  RET_ITERSEG,
+  RET_ITERSEG_IMM_TO_SP,
+
+  JMP_EQ,
+  JMP_LESS_THAN,
+  JMP_LESS_EQUAL,
+  JMP_BELOW,
+  JMP_BELOW_EQUAL,
+  JMP_PARITY,
+  JMP_OVERFLOW,
+  JMP_SIGN,
+  JMP_NOT_EQUAL,
+  JMP_NOT_LESS,
+  JMP_NOT_LESS_EQUAL,
+  JMP_NOT_BELOW,
+  JMP_NOT_BELOW_EQUAL,
+  JMP_NOT_PARITY,
+  JMP_NOT_OVERFLOW,
+  JMP_NOT_SIGN,
+
+  LOOP,
+  LOOP_ZERO,
+  LOOP_NOT_ZERO,
+  JMP_ON_CX_ZERO,
+
+  INT_SPEC,
+  INT_3,
+  INT_OVERFLOW,
+  INT_RETURN,
+
+  CLEAR_CARRY,
+  COMPLEMENT_CARRY,
+  SET_CARRY,
+  CLEAR_DIRECTION,
+  SET_DIRECTION,
+  CLEAR_INTERRUPT,
+  SET_INTERRUPT,
+  HALT,
+  WAIT,
+  ESCAPE,
+  LOCK,
+  SEGMENT
 };
 
 file_scope char* RegTable[] =

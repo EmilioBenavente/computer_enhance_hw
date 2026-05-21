@@ -364,23 +364,10 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
         PCUndos[PCUndoIter++] = DecoderContext.BytesRead;
         SimCPU.PC += DecoderContext.BytesRead;
       }
-      if(SimCPU.PC >= FileResult.ContentSize - 60)
+      if(SimCPU.PC >= FileResult.ContentSize)
       {
         SimCPU.PC = 0;
       }
-
-      SimCPU.A.Value++;
-      SimCPU.B.Value += 123;
-      SimCPU.C.Value |= SimCPU.B.Value;
-      SimCPU.D.Value = SimCPU.A.Low | SimCPU.B.Low & SimCPU.C.High;
-      SimCPU.SP++;
-      SimCPU.BP++;
-      SimCPU.SI += 300;
-      SimCPU.DI += 3000;
-      SimCPU.CS += 321;
-      SimCPU.SS -= 21;
-      SimCPU.ES--;
-      SimCPU.Flags++;
 
 //@NOTE(Emilio): Memory Window.
       RendererRenderDisplayBox(&RenderDisplayBuffer, (WND_WIDTH/2),
