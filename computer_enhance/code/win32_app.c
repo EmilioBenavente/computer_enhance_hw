@@ -190,8 +190,6 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
   {
     //@NOTE(Emilio): Simulator Code
     sim_cpu SimCPU = {};
-    u8 PCUndos[64] = {};
-    s32 PCUndoIter = 0;
 
     file_result FileResult = Win32ReadEntireFile(HW_FILE);
     SimulatorFlashProgram(SimMemory, FileResult.Contents, SimCPU.PC,
@@ -321,7 +319,8 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
 
       if(GlobalIsResetAsserted)
       {
-        SimCPU.PC = 0;
+        sim_cpu ZeroCPU = {};
+        SimCPU = ZeroCPU;
         PCUndoIter = 0;
         GlobalIsResetAsserted = 0;
       }
@@ -329,6 +328,9 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
       char DebugText[256];
       decoder_context DecoderContext = {};
       DecoderDecodeInstruction(&DecoderContext, SimMemory, SimCPU.PC);
+
+      SimulatorSimulateSingleInstruction(&DecoderContext, &SimCPU);
+
       Win32DebugPrintInstruction(&DecoderContext, DebugText);
 
       u32 PCInstrcutctionToDraw = SimCPU.PC;
@@ -337,33 +339,6 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
         PCUndoIter = 0;
       }
 
-      if(GlobalIsGamePaused)
-      {
-        if(GlobalStepOffset > 0)
-        {
-          PCUndos[PCUndoIter++] = DecoderContext.BytesRead;
-          SimCPU.PC += DecoderContext.BytesRead;
-
-          GlobalStepOffset = 0;
-          continue;
-        }
-        else if(GlobalStepOffset < 0)
-        {
-          PCUndoIter--;
-          if(PCUndoIter < 0)
-          {
-            PCUndoIter = 0;
-          }
-          SimCPU.PC -= PCUndos[PCUndoIter];
-          GlobalStepOffset = 0;
-          continue;
-        }
-      }
-      else
-      {
-        PCUndos[PCUndoIter++] = DecoderContext.BytesRead;
-        SimCPU.PC += DecoderContext.BytesRead;
-      }
       if(SimCPU.PC >= FileResult.ContentSize)
       {
         SimCPU.PC = 0;

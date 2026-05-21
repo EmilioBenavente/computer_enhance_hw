@@ -3,9 +3,8 @@
 
 #include "ecb_utils.h"
 
-#define HW_FILE "C:/SpiderEnv/computer_enhance_source/computer_enhance/perfaware/part1/listing_0041_add_sub_cmp_jnz"
+#define HW_FILE "C:/SpiderEnv/computer_enhance_source/computer_enhance/perfaware/part1/listing_0043_immediate_movs"
 
-file_scope u8 SimMemory[MegaBytes(1)];
 
 
 typedef plex
@@ -24,9 +23,9 @@ typedef plex
 typedef plex
 {
   reg_type A;
-  reg_type B;
   reg_type C;
   reg_type D;
+  reg_type B;
 
   u16 SP;
   u16 BP;
@@ -45,15 +44,19 @@ typedef plex
 char* CPUFieldsAsStrings[] =
 {
   "ax", "ah", "al",
-  "bx", "bh", "bl",
   "cx", "ch", "cl",
   "dx", "dh", "dl",
+  "bx", "bh", "bl",
   "sp", "bp", "si",
   "di", "cs", "ds",
   "ss", "es", "pc",
   "F"
 };
 
+global_variable u8 SimMemory[MegaBytes(1)];
 global_variable u32 GlobalStringCutoffWidth = 450;
+global_variable u8 PCUndos[64] = {};
+global_variable s32 PCUndoIter = 0;
+
 
 #endif //@NOTE(Emilio): _SIMULATOR_H_

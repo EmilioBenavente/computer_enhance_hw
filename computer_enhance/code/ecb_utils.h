@@ -32,4 +32,20 @@ typedef uint32_t  b32;
 
 #define ArraySize(Array) (sizeof((Array)) / sizeof((Array)[0]))
 
+file_scope b32
+ECB_IsStringEqual(char* A, char* B)
+{
+  b32 Result = 1;
+  while(*A && *B)
+  {
+    if(*A++ != *B++)
+    {
+      Result = 0;
+      break;
+    }
+  }
+
+  return Result;
+}
+
 #endif //@NOTE(Emilio): _ECB_UTILS_H_

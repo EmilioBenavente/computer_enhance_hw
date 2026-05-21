@@ -3,13 +3,6 @@
 #include <windows.h>
 #include "ecb_utils.h"
 
-//@NOTE(Emilio): For now we will include this here
-//  but when we add support for hot-reloading
-//  we will need to load this manually
-#include "simulator.c"
-#include "decoder.c"
-#include "renderer.c"
-
 
 
 #define WND_WIDTH  1920
@@ -41,6 +34,14 @@ global_variable win32_display_buffer GlobalDisplayBuffer;
 
 //@INCOMPLETE @IMPORTANT(Emilio): This should not be a global!!
 global_variable s32 GlobalStepOffset;
+
+
+//@NOTE(Emilio): For now we will include this here
+//  but when we add support for hot-reloading
+//  we will need to load this manually
+#include "decoder.c"
+#include "simulator.c"
+#include "renderer.c"
 
 
 #endif //@NOTE(Emilio): _WIN32_APP_H_
