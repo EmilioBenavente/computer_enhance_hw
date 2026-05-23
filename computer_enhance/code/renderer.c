@@ -162,6 +162,9 @@ RendererRenderString(render_display_buffer* Buffer, s32 XPos, s32 YPos, char* St
     }
 
 
+    RendererRenderBox(Buffer, XPos, YPos-10,
+         FontWidth, FontHeight/2, 0, 0, 0);
+
     s8* Row = (s8*)Buffer->Memory + (Buffer->Stride * (YPos+FontY)) + (Buffer->BytesPerPixel*(XPos+FontX));
     for(s32 Y = 0; Y < FontHeight; Y++)
     {
