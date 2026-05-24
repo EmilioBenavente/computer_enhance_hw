@@ -3,7 +3,7 @@
 
 #include "ecb_utils.h"
 
-#define HW_FILE "C:/SpiderEnv/computer_enhance_source/computer_enhance/perfaware/part1/listing_0043_immediate_movs"
+#define HW_FILE "C:/SpiderEnv/computer_enhance_source/computer_enhance/perfaware/part1/listing_0046_add_sub_cmp"
 
 
 
@@ -32,13 +32,18 @@ typedef plex
   u16 SI;
   u16 DI;
 
-  u16 CS;
-  u16 DS;
-  u16 SS;
   u16 ES;
+  u16 CS;
+  u16 SS;
+  u16 DS;
 
   u16 PC;
   u16 Flags;
+
+  u16 RegIndex;
+  u16 RMIndex;
+  b32 IsFlagsUpdated;
+
 } sim_cpu;
 
 char* CPUFieldsAsStrings[] =
@@ -48,15 +53,34 @@ char* CPUFieldsAsStrings[] =
   "dx", "dh", "dl",
   "bx", "bh", "bl",
   "sp", "bp", "si",
-  "di", "cs", "ds",
-  "ss", "es", "pc",
+  "di", "es", "cs",
+  "ss", "ds", "pc",
   "F"
 };
+
+enum alu_code
+{
+  ALU_MOV = 0,
+  ALU_ADD,
+  ALU_SUB,
+  ALU_CMP
+};
+
+enum reg_op_state
+{
+  RM_TO_REG = 0,
+  REG_TO_RM,
+  IMM_TO_REG,
+  IMM_TO_RM,
+  REG_TO_IMM,
+  RM_TO_IMM
+};
+
 
 global_variable u8 SimMemory[MegaBytes(1)];
 global_variable u32 GlobalStringCutoffWidth = 450;
 global_variable u8 PCUndos[64] = {};
-global_variable s32 PCUndoIter = 0;
+global_variable s32 PCUndoIter;
 
 
 #endif //@NOTE(Emilio): _SIMULATOR_H_

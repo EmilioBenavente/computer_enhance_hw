@@ -20,6 +20,7 @@ enum DecoderIterFields
   F_WideBit,
   F_Mod,
   F_Reg,
+  F_Seg,
   F_OctalCode,
   F_RM,
   F_DispLow,
@@ -52,6 +53,7 @@ typedef plex
       instruction_bits IsWide;
       instruction_bits Mod;
       instruction_bits Reg;
+      instruction_bits Seg;
       instruction_bits OctalCode;
       instruction_bits RM;
       instruction_bits DispLow;
@@ -59,7 +61,7 @@ typedef plex
       instruction_bits DataLow;
       instruction_bits DataHigh;
     };
-    instruction_bits InstructionBits[11];
+    instruction_bits InstructionBits[12];
   };
 
   char RegString[24];
@@ -154,6 +156,11 @@ file_scope instruction_fields SimISA[] =
   ESCAPE,
   LOCK,
   SEGMENT
+};
+
+file_scope char* SegTable[] =
+{
+  "es", "cs", "ss", "ds"
 };
 
 file_scope char* RegTable[] =

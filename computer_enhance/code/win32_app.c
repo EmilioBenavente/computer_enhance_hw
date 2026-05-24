@@ -243,6 +243,7 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
                 if(IsKeyDown)
                 {
                   GlobalIsGamePaused = !GlobalIsGamePaused;
+                  GlobalIsFirstStep = !GlobalIsFirstStep;
                 }
               }
               if(Message.wParam == 'R')
@@ -261,6 +262,8 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
                   {
                     GlobalSleepValue -= 50;
                   }
+
+                  GlobalIsFirstStep = 1;
                 }
               }
               if(Message.wParam == VK_RIGHT)
@@ -275,6 +278,8 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
                   {
                     GlobalSleepValue += 50;
                   }
+
+                  GlobalIsFirstStep = 1;
                 }
               }
               if(Message.wParam == VK_UP)
@@ -323,17 +328,22 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance,
         SimCPU = ZeroCPU;
         PCUndoIter = 0;
         GlobalIsResetAsserted = 0;
+        GlobalIsFirstStep = 1;
       }
 
       char DebugText[256];
       decoder_context DecoderContext = {};
-      DecoderDecodeInstruction(&DecoderContext, SimMemory, SimCPU.PC);
-
-      SimulatorSimulateSingleInstruction(&DecoderContext, &SimCPU);
-
-      Win32DebugPrintInstruction(&DecoderContext, DebugText);
 
       u32 PCInstrcutctionToDraw = SimCPU.PC;
+      DecoderDecodeInstruction(&DecoderContext, SimMemory, SimCPU.PC);
+      if(GlobalIsFirstStep)
+      {
+        SimulatorSimulateSingleInstruction(&DecoderContext, &SimCPU);
+        Win32DebugPrintInstruction(&DecoderContext, DebugText);
+
+        GlobalIsFirstStep = GlobalIsGamePaused ? 0 : 1;
+      }
+
       if(PCUndoIter > 63)
       {
         PCUndoIter = 0;

@@ -110,16 +110,6 @@ DecoderParseInstructionFields(decoder_context* Context, u8* InstructionPtr)
             (SimISA[Iter].InstructionBits[DecoderIter].ValueMask <<
             DataPos)) >> (DataPos);
 
-          if(DecoderIter == F_RM)
-          {
-            if((InstructionData.Mod.Value != 3) ||
-               (InstructionData.Mod.Value == 0 &&
-              InstructionData.RM.Value == 6))
-            {
-              //@INCOMPLETE(Emilio): Process Disp at least 8 bit Field
-            }
-          }
-
           if(DecoderIter == F_DispLow)
           {
             if((InstructionData.Mod.Value == 1) ||
@@ -241,6 +231,13 @@ DecoderParseInstructionFromFields(decoder_context* Context)
             RegTable[FieldData->Reg.Value + (8 * FieldData->IsWide.Value)]);
   }
 
+  if(FieldData->Seg.IsExists)
+  {
+    sprintf(FieldData->RegString, "%s",
+            SegTable[FieldData->Seg.Value]);
+  }
+
+
   char PrefixString[5];
   sprintf(PrefixString, "");
   if(FieldData->DataLow.IsExists)
@@ -263,6 +260,10 @@ DecoderParseInstructionFromFields(decoder_context* Context)
 
   if(FieldData->RM.IsExists)
   {
+    u8 WideOffest =
+      ((FieldData->Mod.Value == 3 && FieldData->IsWide.Value) ||
+       (FieldData->OpCode.Value == SimISA[5].OpCode.Value)) ? 8 : 0;
+
     if(FieldData->Mod.Value == 0 && FieldData->RM.Value == 6)
     {
       RMStringPtr +=
@@ -270,9 +271,7 @@ DecoderParseInstructionFromFields(decoder_context* Context)
     }
     else
     {
-      u8 WideOffest =
-        FieldData->Mod.Value == 3 && FieldData->IsWide.Value ? 8 : 0;
-      RMStringPtr +=
+       RMStringPtr +=
         sprintf(RMStringPtr, "%s",
         RMTable[(FieldData->RM.Value + (8 * FieldData->Mod.Value)) +
                 WideOffest]);
@@ -311,12 +310,27 @@ DecoderParseInstructionFromFields(decoder_context* Context)
     {
       sprintf(FieldData->RMString, "[%s]", DataString);
     }
+
     IsDestination = 1;
   }
 
+  if(FieldData->OpCode.Value == SimISA[5].OpCode.Value)
+  {
+    IsDestination = 1;
+  }
 
   if(IsDestination)
   {
+    //@IMPORTANT @INCOMPLETE(Emilio): This is hardcoded for now.
+    FieldData->IsDestination.IsExists = 1;
+    FieldData->IsDestination.Value = 1;
+    FieldData->IsDestination.BitCount = 1;
+    FieldData->IsDestination.ValueMask = 0x1;
+
+
+
+
+
     Context->InstructionWritePtr +=
       sprintf(Context->InstructionWritePtr, "%s%s, %s",
               PrefixString, FieldData->RegString, FieldData->RMString);

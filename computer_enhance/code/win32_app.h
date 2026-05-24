@@ -30,6 +30,7 @@ global_variable b32 GlobalIsGamePaused;
 global_variable b32 GlobalIsResetAsserted;
 global_variable s32 GlobalSleepValue;
 global_variable s32 GlobalMemoryOffset;
+global_variable b32 GlobalIsFirstStep = 1;
 global_variable win32_display_buffer GlobalDisplayBuffer;
 
 //@INCOMPLETE @IMPORTANT(Emilio): This should not be a global!!

@@ -5,6 +5,7 @@
 #define MOD_BITS                .Mod = INSTRUCTION_BITS(1, 0, 2, 0x3)
 #define OCTAL_CODE_BITS(bits)         .OctalCode = INSTRUCTION_BITS(1, bits, 3, 0x7)
 #define REG_BITS                .Reg = INSTRUCTION_BITS(1, 0, 3, 0x7)
+#define SEG_BITS                .Seg = INSTRUCTION_BITS(1, 0, 3, 0x7)
 #define RM_BITS                 .RM = INSTRUCTION_BITS(1, 0, 3, 0x7)
 #define DISP_LOW                .DispLow = INSTRUCTION_BITS(1, 0, 8, 0xFF)
 #define DISP_HIGH               .DispHigh = INSTRUCTION_BITS(1, 0, 8, 0xFF)
@@ -20,8 +21,8 @@
 #define MOV_IMM_TO_REG {"mov", {{OP_CODE_BITS(0b1011, 4, 0xF), W_BIT, REG_BITS, DATA_LOW, DATA_HIGH}}}
 #define MOV_MEM_TO_ACC {"mov", {{OP_CODE_BITS(0b1010000, 7, 0x7F), W_BIT, DATA_LOW, DATA_HIGH}}}
 #define MOV_ACC_TO_MEM {"mov", {{OP_CODE_BITS(0b1010001, 7, 0x7F), W_BIT, DATA_LOW, DATA_HIGH}}}
-#define MOV_RM_TO_SEG {"mov", {{OP_CODE_BITS(0b10001110, 8, 0xFF), MOD_BITS, REG_BITS, DISP_LOW, DISP_HIGH}}}
-#define MOV_SEG_TO_RM {"mov", {{OP_CODE_BITS(0b10001100, 8, 0xFF), MOD_BITS, REG_BITS, DISP_LOW, DISP_HIGH}}}
+#define MOV_RM_TO_SEG {"mov", {{OP_CODE_BITS(0b10001110, 8, 0xFF), MOD_BITS, SEG_BITS, RM_BITS, DISP_LOW, DISP_HIGH}}}
+#define MOV_SEG_TO_RM {"mov", {{OP_CODE_BITS(0b10001100, 8, 0xFF), MOD_BITS, SEG_BITS, RM_BITS, DISP_LOW, DISP_HIGH}}}
 
 //@NOTE(Emilio): add instructions
 #define ADD_RM_WITH_REG {"add", {{OP_CODE_BITS(0b000000, 6, 0x2F), D_BIT, W_BIT, MOD_BITS, REG_BITS, RM_BITS, DISP_LOW, DISP_HIGH}}}
