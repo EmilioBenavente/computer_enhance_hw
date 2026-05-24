@@ -7,6 +7,8 @@ if not exist ..\..\build mkdir ..\..\build
 
 pushd ..\..\build
 
+del /S /Q *
+
 cl %COMMON_CMD_FLAGS% ..\computer_enhance\code\win32_app.c %COMMON_LINKER_FLAGS%
 
 popd
