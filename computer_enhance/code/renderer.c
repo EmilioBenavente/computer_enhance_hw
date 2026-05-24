@@ -206,7 +206,7 @@ RendererRenderDecoderWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
       r32 ColorG = (r32)0.0f;
       r32 ColorB = (r32)0.0f;
       r32 Value = 0.1f;
-      if(YIter == 7)
+      if(YIter == 8)
       {
         DecoderValue = DecoderContext->InstructionFields.Displacement;
         Value = (r32)((DecoderValue & (1 << XIter-1)) >> XIter-1);
@@ -216,7 +216,7 @@ RendererRenderDecoderWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
         ColorB = Value ? 1.0f : 0.0f;
 
       }
-      else if(YIter == 8)
+      else if(YIter == 10)
       {
         DecoderValue = DecoderContext->InstructionFields.Data;
         Value = (r32)((DecoderValue & (1 << XIter-1)) >> XIter-1);
@@ -233,7 +233,7 @@ RendererRenderDecoderWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
           Value = (r32)((DecoderValue & (1 << XIter-1)) >> XIter-1);
 
           ColorR = Value ? 1.0f : 0.0f;
-          ColorG = Value ? 1.0f : 0.0f;
+          ColorG = Value ? 1.0f : 0.17f;
           ColorB = Value ? 1.0f : 0.0f;
         }
         else
@@ -271,7 +271,7 @@ RendererRenderDecoderWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
     }
     else
     {
-      sprintf(ValueString, "%s 0x%X\n",
+      sprintf(ValueString, "%s %d\n",
            DecoderIterFieldAsStrings[YIter], DecoderValue);
     }
     RendererRenderString(Buffer, OriginalXPos-30, YPos+25, ValueString, 24, GlobalStringCutoffWidth);
@@ -303,12 +303,22 @@ RendererRenderCPUWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
   {
     u16 RegisterValue = *CPUContextIter;
 
+    r32 ColorGValue = YIter == CPUContext->RegIndex ? 0.17f : 0.0f;
+    ColorGValue = YIter == CPUContext->RMIndex ?
+      0.17f : ColorGValue;
+
+    ColorGValue = (YIter == 12) ?
+      0.17f : ColorGValue;
+
+    ColorGValue = (YIter == 13 && CPUContext->IsFlagsUpdated) ?
+      0.17f : ColorGValue;
+
     for(u32 XIter = XIterCount+1; XIter > 0; XIter--)
     {
       u32 Value = (r32)((RegisterValue & (1 << XIter-1)) >> XIter-1);
 
       r32 ColorR = Value ? 1.0f : 0.0f;
-      r32 ColorG = Value ? 1.0f : 0.0f;
+      r32 ColorG = Value ? 1.0f : ColorGValue;
       r32 ColorB = Value ? 1.0f : 0.0f;
 
       if(YIter < 4 && XIter == 8)
@@ -318,6 +328,57 @@ RendererRenderCPUWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
 
       RendererRenderBox(Buffer, XPos, YPos,
            Width, Height, ColorR, ColorG, ColorB);
+
+
+      //@NOTE(Emilio): Rendering Flag Strings
+      if(YIter == 13 && CPUContext->IsFlagsUpdated && Value)
+      {
+        if(XIter == 0)
+        {
+          RendererRenderString(Buffer, XPos - 20, YPos+25,
+            "C", 24, GlobalStringCutoffWidth);
+        }
+        else if(XIter == 1)
+        {
+          RendererRenderString(Buffer, XPos - 20, YPos+25,
+            "P", 24, GlobalStringCutoffWidth);
+        }
+        else if(XIter == 2)
+        {
+          RendererRenderString(Buffer, XPos - 20, YPos+25,
+            "A", 24, GlobalStringCutoffWidth);
+        }
+        else if(XIter == 3)
+        {
+          RendererRenderString(Buffer, XPos - 20, YPos+25,
+            "Z", 24, GlobalStringCutoffWidth);
+        }
+        else if(XIter == 4)
+        {
+          RendererRenderString(Buffer, XPos - 20, YPos+25,
+            "S", 24, GlobalStringCutoffWidth);
+        }
+        else if(XIter == 5)
+        {
+          RendererRenderString(Buffer, XPos - 20, YPos+25,
+            "O", 24, GlobalStringCutoffWidth);
+        }
+        else if(XIter == 6)
+        {
+          RendererRenderString(Buffer, XPos - 20, YPos+25,
+            "I", 24, GlobalStringCutoffWidth);
+        }
+        else if(XIter == 7)
+        {
+          RendererRenderString(Buffer, XPos - 20, YPos+25,
+            "D", 24, GlobalStringCutoffWidth);
+        }
+        else if(XIter == 8)
+        {
+          RendererRenderString(Buffer, XPos - 20, YPos+25,
+            "T", 24, GlobalStringCutoffWidth);
+        }
+      }
 
       XPos += Width;
     }
@@ -330,13 +391,13 @@ RendererRenderCPUWindow(render_display_buffer* Buffer, s32 XPos, s32 YPos,
       RendererRenderString(Buffer, OriginalXPos-30, YPos+25, ValueString, 24, GlobalStringCutoffWidth);
 
       reg_type RegisterValueAsRegType = *((reg_type*)CPUContextIter);
-      sprintf(ValueString, "%s: %d\n",
+      sprintf(ValueString, "%s: 0x%X\n",
           CPUFieldsAsStrings[FieldStringIter++], RegisterValueAsRegType.High);
       RendererRenderString(Buffer, OriginalXPos + 100, YPos+25, ValueString, 24, GlobalStringCutoffWidth);
 
-      sprintf(ValueString, "%s: %d\n",
+      sprintf(ValueString, "%s: 0x%X\n",
           CPUFieldsAsStrings[FieldStringIter++], RegisterValueAsRegType.Low);
-      RendererRenderString(Buffer, OriginalXPos + (TempWidth/2) - 80, YPos+25, ValueString, 24, GlobalStringCutoffWidth);
+      RendererRenderString(Buffer, OriginalXPos + (TempWidth/2) - 80, YPos+28, ValueString, 24, GlobalStringCutoffWidth);
 
     }
     else
