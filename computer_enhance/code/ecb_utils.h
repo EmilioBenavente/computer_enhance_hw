@@ -32,6 +32,31 @@ typedef uint32_t  b32;
 
 #define ArraySize(Array) (sizeof((Array)) / sizeof((Array)[0]))
 
+//@NOTE(Emilio): This initial implementation forces all file reads to be under 32 bits
+typedef plex
+{
+  void* Content;
+  u32 ContentSize;
+} ecb_file_result;
+
+#define ECB_READ_ENTIRE_FILE(name) ecb_file_result name(char* Filename)
+ECB_READ_ENTIRE_FILE(ECBReadEntireFileStub)
+{
+  ecb_file_result Result = {};
+
+  return Result;
+}
+#define ECB_WRITE_ENTIRE_FILE(name) u32 name(ecb_file_result* FileResult, char* Filename)
+ECB_WRITE_ENTIRE_FILE(ECBWriteEntireFileStub)
+{
+  return 0;
+}
+#define ECB_FREE_FILE(name) void name(ecb_file_result* FileResult)
+ECB_FREE_FILE(ECBFreeFileStub)
+{
+  return;
+}
+
 file_scope b32
 ECB_IsStringEqual(char* A, char* B)
 {
