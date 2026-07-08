@@ -6,7 +6,11 @@ s32 WINAPI
 wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance, PWSTR CmdLine, s32 CmdShow)
 {
 
-  DecoderReadByteStream();
+  ecb_file_result FileResult = Win32ReadEntireFile(__FILE__);
+  Win32WriteEntireFile(&FileResult, "dump.txt");
+  Win32FreeFile(&FileResult);
+
+//  DecoderReadByteStream();
 
 
   //@NOTE(Emilio): The only thing we will need at the start is MessageBox
