@@ -1,6 +1,9 @@
 #if !defined(_8086_DECODER_H_)
 #define _8086_DECODER_H_
 
+//@NOTE(Emilio): Used for sprintf
+#include <stdio.h>
+
 #include "8086_CPU_def.h"
 #include "ecb_utils.h"
 
@@ -9,14 +12,18 @@
 //@NOTE(Emilio): OpCode SHOULD be extracted vis OpCode = (OpCode >> Shift) & Mask;
 typedef plex
 {
+  char* OpCodeString;
   u32 OpCode;
   u32 Mask;
   u32 Shift;
+  u32 BitCount;
 } decoder_opcode_stats;
 
 typedef plex
 {
   b32 IsFieldExist;
+  s32 FieldMask;
+  s32 FieldBitCount;
   s32 FieldValue;
 } decoder_field;
 
@@ -34,7 +41,16 @@ typedef plex
 
   s32 Displacement;
   s32 Data;
+
+  b32 IsForcedWide;
 } decoder_opcode;
+
+typedef plex
+{
+  u8* Pointer;
+  u32 BitCount;
+} decoder_stream_pointer;
+
 
 decoder_opcode OpCodes8086Table[OP_CODE_TABLE_8086_SIZE] =
 {

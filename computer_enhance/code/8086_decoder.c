@@ -1,5 +1,58 @@
 #include "8086_decoder.h"
 
+file_scope void
+DecoderGetFieldValueAndUpdateBitCount(decoder_field *Field, decoder_stream_pointer *StreamPtr)
+{
+  u32 ShiftValue = 8 - (StreamPtr->BitCount % 8);
+  if(Field->IsFieldExist)
+  {
+    Field->FieldValue = (StreamPtr->Pointer >> ShiftValue) & Field->FieldMask;
+    StreamPtr->BitCount += Field->BitCount;
+
+
+    if(StreamPtr->BitCount > 7)
+    {
+      StreamPtr->BitCount -= 8;
+      StreamPtr->Pointer++;
+    }
+  }
+}
+
+file_scope void
+DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *StreamPtr)
+{
+  StreamPtr->BitCount += Fields->BitCount;
+
+  DecoderGetFieldValueAndUpdateBitCount(&Fields->DisplacementFlag, StreamPtr);
+  DecoderGetFieldValueAndUpdateBitCount(&Fields->WideFlag, StreamPtr);
+  DecoderGetFieldValueAndUpdateBitCount(&Fields->Mod, StreamPtr);
+  DecoderGetFieldValueAndUpdateBitCount(&Fields->Reg, StreamPtr);
+  DecoderGetFieldValueAndUpdateBitCount(&Fields->RM, StreamPtr);
+
+  if(Fields->DisplacementFlag.IsFieldExist)
+  {
+    Fields->Displacement = *StreamPtr->Pointer;
+    StreamPtr++;
+
+    if(Fields->WideFlag.IsFieldExist || Fields->IsForcedWide)
+    {
+      Fields->Displacement = *StreamPtr->Pointer;
+      StreamPtr++;
+    }
+  }
+
+  if(Fields->DataFlag.IsFieldExist)
+  {
+    Fields->Data = *StreamPtr->Pointer;
+    StreamPtr++;
+
+    if(Fields->WideFlag.IsFieldExist || Fields->IsForcedWide)
+    {
+      Fields->Data = *StreamPtr->Pointer;
+      StreamPtr++;
+    }
+  }
+}
 
 file_scope decoder_opcode
 DecoderGetOpCodeFromStream(char *InputStream)
@@ -34,23 +87,25 @@ DecoderGetOpCodeFromStream(char *InputStream)
   return Result;
 }
 
+
+
 file_scope void
-DecoderReadByteStream(char *InputStream)
+DecoderReadByteStream(char **Buffer, char *InputStream)
 {
   ECB_ASSERT(InputStream);
 
+  decoder_stream_pointer StreamPtr = {};
+  StreamPtr.Pointer  = (u8*)InputStream;
+  StreamPtr.BitCount = 0;
+
   char InstructionByte = 0;
-  while(*InputStream)
+  while(*StreamPtr.Pointer)
   {
-    decoder_opcode OpCodeFields = DecoderGetOpCodeFromStream(InputStream);
+    decoder_opcode OpCodeFields = DecoderGetOpCodeFromStream(StreamPtr.Pointer);
     if(OpCodeFields.OpCodeStats.OpCode)
     {
-      
-
+      DecoderExtractValuesFromField(&OpCodeFields, InputStream, 0);
+      DecoderPrintInstructionFromFields(&OpCodeFields);
     }
-
-
-
-
   }
 }
