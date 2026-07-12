@@ -3,11 +3,11 @@
 file_scope void
 DecoderGetFieldValueAndUpdateBitCount(decoder_field *Field, decoder_stream_pointer *StreamPtr)
 {
-  u32 ShiftValue = 8 - (StreamPtr->BitCount % 8);
+  u32 ShiftValue = 8 - StreamPtr->BitCount;
   if(Field->IsFieldExist)
   {
-    Field->FieldValue = (StreamPtr->Pointer >> ShiftValue) & Field->FieldMask;
-    StreamPtr->BitCount += Field->BitCount;
+    Field->FieldValue = (*StreamPtr->Pointer >> ShiftValue) & Field->FieldMask;
+    StreamPtr->BitCount += Field->FieldBitCount;
 
 
     if(StreamPtr->BitCount > 7)
@@ -21,34 +21,39 @@ DecoderGetFieldValueAndUpdateBitCount(decoder_field *Field, decoder_stream_point
 file_scope void
 DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *StreamPtr)
 {
-  StreamPtr->BitCount += Fields->BitCount;
+  StreamPtr->BitCount += Fields->OpCodeStats.BitCount;
 
-  DecoderGetFieldValueAndUpdateBitCount(&Fields->DisplacementFlag, StreamPtr);
+  DecoderGetFieldValueAndUpdateBitCount(&Fields->DestinationFlag, StreamPtr);
   DecoderGetFieldValueAndUpdateBitCount(&Fields->WideFlag, StreamPtr);
   DecoderGetFieldValueAndUpdateBitCount(&Fields->Mod, StreamPtr);
   DecoderGetFieldValueAndUpdateBitCount(&Fields->Reg, StreamPtr);
   DecoderGetFieldValueAndUpdateBitCount(&Fields->RM, StreamPtr);
 
-  if(Fields->DisplacementFlag.IsFieldExist)
+  b32 IsDisplacementExist = (Fields->Mod.FieldValue == 0x1) ||
+    (Fields->Mod.FieldValue == 0x2)                       ||
+    (Fields->Mod.FieldValue == 0x0 && Fields->RM.FieldValue == 7);
+  if(IsDisplacementExist)
   {
-    Fields->Displacement = *StreamPtr->Pointer;
+    Fields->Displacement.IsFieldExist = 1;
+    Fields->Displacement.FieldValue = *StreamPtr->Pointer;
     StreamPtr++;
 
     if(Fields->WideFlag.IsFieldExist || Fields->IsForcedWide)
     {
-      Fields->Displacement = *StreamPtr->Pointer;
+      Fields->Displacement.FieldValue |= (*StreamPtr->Pointer < 8);
       StreamPtr++;
     }
   }
 
-  if(Fields->DataFlag.IsFieldExist)
+  if(Fields->Data.IsFieldExist)
   {
-    Fields->Data = *StreamPtr->Pointer;
+    Fields->Data.IsFieldExist = 1;
+    Fields->Data.IsFieldExist = *StreamPtr->Pointer;
     StreamPtr++;
 
     if(Fields->WideFlag.IsFieldExist || Fields->IsForcedWide)
     {
-      Fields->Data = *StreamPtr->Pointer;
+      Fields->Data.IsFieldExist |= (*StreamPtr->Pointer << 8);
       StreamPtr++;
     }
   }
@@ -71,7 +76,7 @@ DecoderGetOpCodeFromStream(char *InputStream)
     if(OpCodeTestResult == OpCodeTest.OpCode)
     {
       Result.OpCodeStats      = TempOpCode->OpCodeStats;
-      Result.DisplacementFlag = TempOpCode->DisplacementFlag;
+      Result.DestinationFlag  = TempOpCode->DestinationFlag;
       Result.WideFlag         = TempOpCode->WideFlag;
       Result.Mod              = TempOpCode->Mod;
       Result.Reg              = TempOpCode->Reg;
@@ -87,7 +92,56 @@ DecoderGetOpCodeFromStream(char *InputStream)
   return Result;
 }
 
+file_scope void
+DecoderPrintInstructionFromFields(char **WritePtr, decoder_opcode *Fields)
+{
+  char PrintBuffer[TEMP_PRINT_BUFFER_SIZE];
+  char* PrintPtr = PrintBuffer;
+  PrintPtr += sprintf(PrintPtr, "%s", Fields->OpCodeStats.OpCodeString);
 
+  b32 IsWide = Fields->WideFlag.IsFieldExist || Fields->IsForcedWide;
+  
+  char* RegString = 0;
+  if(Fields->Reg.IsFieldExist)
+  {
+    u32 RegIndex = Fields->Reg.FieldValue + (8*IsWide);
+    RegString = RegTable[RegIndex];
+  }
+
+  char* RMString = 0;
+  if(Fields->RM.IsFieldExist)
+  {
+    u32 RMIndex = Fields->RM.FieldValue + (8*Fields->Mod.FieldValue);
+    if(Fields->Mod.FieldValue == 0x3)
+    {
+      RMIndex += (8*IsWide);
+    }
+    RegString = RMTable[RMIndex];
+  }
+
+  //@INCOMPLETE(Emilio): Lots of things not considered yet,
+  //  for further instructions, such as if the Reg Field
+  //  does not exist. Plus Displacement and Data Fields.
+
+  if(Fields->DestinationFlag.FieldValue)
+  {
+    PrintPtr += sprintf(PrintPtr, "%s, %s", RegString, RMString);
+  }
+  else
+  {
+    PrintPtr += sprintf(PrintPtr, "%s, %s", RMString, RegString);
+  }
+
+
+  if(WritePtr)
+  {
+    sprintf(*WritePtr, "%s", PrintPtr);
+  }
+  else
+  {
+    printf("%s\n", PrintPtr);
+  }
+}
 
 file_scope void
 DecoderReadByteStream(char **Buffer, char *InputStream)
@@ -104,8 +158,8 @@ DecoderReadByteStream(char **Buffer, char *InputStream)
     decoder_opcode OpCodeFields = DecoderGetOpCodeFromStream(StreamPtr.Pointer);
     if(OpCodeFields.OpCodeStats.OpCode)
     {
-      DecoderExtractValuesFromField(&OpCodeFields, InputStream, 0);
-      DecoderPrintInstructionFromFields(&OpCodeFields);
+      DecoderExtractValuesFromField(&OpCodeFields, &StreamPtr);
+      DecoderPrintInstructionFromFields(0, &OpCodeFields);
     }
   }
 }

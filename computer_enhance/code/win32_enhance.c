@@ -6,7 +6,7 @@ s32 WINAPI
 wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance, PWSTR CmdLine, s32 CmdShow)
 {
   ecb_file_result InputStream = Win32ReadEntireFile(TEST_FILE);
-  DecoderReadByteStream((char*)InputStream.Content);
+  DecoderReadByteStream(0, (char*)InputStream.Content);
 
   Win32WriteEntireFile(&InputStream, "dump.txt");
   Win32FreeFile(&InputStream);

@@ -1,6 +1,5 @@
 #if !defined(_8086_DECODER_H_)
 #define _8086_DECODER_H_
-
 //@NOTE(Emilio): Used for sprintf
 #include <stdio.h>
 
@@ -8,6 +7,7 @@
 #include "ecb_utils.h"
 
 #define TEST_FILE "../../../computer_enhance/perfaware/part1/listing_0037_single_register_mov"
+#define TEMP_PRINT_BUFFER_SIZE 1024
 
 //@NOTE(Emilio): OpCode SHOULD be extracted vis OpCode = (OpCode >> Shift) & Mask;
 typedef plex
@@ -32,15 +32,15 @@ typedef plex
 {
   decoder_opcode_stats OpCodeStats;
 
-  decoder_field DisplacementFlag;
+  decoder_field DestinationFlag;
   decoder_field WideFlag;
 
   decoder_field Mod;
   decoder_field Reg;
   decoder_field RM;
 
-  s32 Displacement;
-  s32 Data;
+  decoder_field Displacement;
+  decoder_field Data;
 
   b32 IsForcedWide;
 } decoder_opcode;
@@ -50,6 +50,25 @@ typedef plex
   u8* Pointer;
   u32 BitCount;
 } decoder_stream_pointer;
+
+
+char *RegTable[REG_TABLE_8086_SIZE] =
+{
+  "al", "cl", "dl", "bl",
+  "ah", "ch", "dh", "bh",
+  "ax", "cx", "dx", "bx",
+  "sp", "bp", "si", "di"
+};
+
+char *RMTable[RM_TABLE_8086_SIZE] =
+{
+  "bx + si", "bx + di", "bp + si", "bp + di", "si", "di", "NOOO!", "bx",
+  "bx + si", "bx + di", "bp + si", "bp + di", "si", "di", "bp", "bx",
+  "bx + si", "bx + di", "bp + si", "bp + di", "si", "di", "bp", "bx",
+  "al", "cl", "dl", "bl", "ah", "ch", "dh", "bh",
+  "ax", "cx", "dx", "bx", "sp", "bp", "si", "di"
+};
+
 
 
 decoder_opcode OpCodes8086Table[OP_CODE_TABLE_8086_SIZE] =
