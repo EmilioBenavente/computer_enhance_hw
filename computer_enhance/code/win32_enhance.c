@@ -6,9 +6,17 @@ s32 WINAPI
 wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance, PWSTR CmdLine, s32 CmdShow)
 {
   ecb_file_result InputStream = Win32ReadEntireFile(TEST_FILE);
-  DecoderReadByteStream(0, InputStream.Content);
 
-  Win32WriteEntireFile(&InputStream, "dump.txt");
+  char *InitialContent = "bits 16\n";
+  ecb_string WriteStream =
+    Win32CreateString(InitialContent, ECB_GetStringLength(InitialContent), 512);
+
+  DecoderReadByteStream(&WriteStream, InputStream.Content);
+
+  ecb_file_result WriteFile = {};
+  WriteFile.Content = WriteStream.Content;
+  WriteFile.ContentSize = WriteStream.ContentSize;
+  Win32WriteEntireFile(&WriteFile, "dump.txt");
   Win32FreeFile(&InputStream);
 
   return 0;

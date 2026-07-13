@@ -6,6 +6,40 @@
 
 #include "ecb_utils.h"
 
+ECB_FREE_STRING(Win32FreeString)
+{
+  if(String->Content)
+  {
+    VirtualFree(String->Content, 0, MEM_RELEASE);
+    String->Content = 0;
+  }
+
+  String->ContentSize = 0;
+  String->ContentCapacity = 0;
+}
+
+ECB_CREATE_STRING(Win32CreateString)
+{
+  ecb_string Result = {};
+
+  if(Capacity)
+  {
+    Result.Content = VirtualAlloc(0, Capacity, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+    if(Result.Content)
+    {
+      Result.ContentCapacity = Capacity;
+    }
+  }
+
+  if(InitialContent)
+  {
+    ECB_WriteToString(&Result, InitialContent, InitialContentSize);
+  }
+
+  return Result;
+}
+
+
 ECB_FREE_FILE(Win32FreeFile)
 {
   if(FileResult->Content)

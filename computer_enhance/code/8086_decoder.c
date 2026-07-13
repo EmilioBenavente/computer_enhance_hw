@@ -92,9 +92,12 @@ DecoderGetOpCodeFromStream(u8 *InputStream)
   return Result;
 }
 
-file_scope void
-DecoderPrintInstructionFromFields(char **WritePtr, decoder_opcode *Fields)
+//@NOTE(Emilio): Returns the number bytes printed.
+file_scope u32
+DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
 {
+  u32 Result = 0;
+
   char PrintBuffer[TEMP_PRINT_BUFFER_SIZE];
   char* PrintPtr = PrintBuffer;
   PrintPtr += sprintf(PrintPtr, "%s ", Fields->OpCodeStats.OpCodeString);
@@ -135,16 +138,18 @@ DecoderPrintInstructionFromFields(char **WritePtr, decoder_opcode *Fields)
 
   if(WritePtr)
   {
-    sprintf(*WritePtr, "%s", PrintPtr);
+    Result = sprintf(WritePtr, "%s", PrintBuffer);
   }
   else
   {
     //@INCOMPLETE @TODO(Emilio): printf is not a cross compatible function, thank you windows..
   }
+
+  return Result;
 }
 
 file_scope void
-DecoderReadByteStream(char **Buffer, u8 *InputStream)
+DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream)
 {
   ECB_ASSERT(InputStream);
 
@@ -159,7 +164,30 @@ DecoderReadByteStream(char **Buffer, u8 *InputStream)
     if(OpCodeFields.OpCodeStats.OpCode)
     {
       DecoderExtractValuesFromField(&OpCodeFields, &StreamPtr);
-      DecoderPrintInstructionFromFields(0, &OpCodeFields);
+
+      WriteBuffer->ContentSize +=
+        DecoderPrintInstructionFromFields(WriteBuffer->Content, &OpCodeFields);
+    }
+  }
+}
+
+file_scope void
+Decoder___(char *WriteBuffer, u8 *InputStream)
+{
+  ECB_ASSERT(InputStream);
+
+  decoder_stream_pointer StreamPtr = {};
+  StreamPtr.Pointer  = (u8*)InputStream;
+  StreamPtr.BitCount = 0;
+
+  char InstructionByte = 0;
+  while(*StreamPtr.Pointer)
+  {
+    decoder_opcode OpCodeFields = DecoderGetOpCodeFromStream(StreamPtr.Pointer);
+    if(OpCodeFields.OpCodeStats.OpCode)
+    {
+      DecoderExtractValuesFromField(&OpCodeFields, &StreamPtr);
+      DecoderPrintInstructionFromFields(WriteBuffer, &OpCodeFields);
     }
   }
 }

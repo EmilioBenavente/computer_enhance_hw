@@ -57,6 +57,50 @@ ECB_FREE_FILE(ECBFreeFileStub)
   return;
 }
 
+typedef plex
+{
+  void* Content;
+  u32 ContentSize;
+  u32 ContentCapacity;
+} ecb_string;
+#define ECB_CREATE_STRING(name) ecb_string name(char *InitialContent, u32 InitialContentSize, u32 Capacity)
+ECB_CREATE_STRING(ECBCreateStringStub)
+{
+  ecb_string Result = {};
+
+  return Result;
+}
+
+#define ECB_FREE_STRING(name) void name(ecb_string *String)
+ECB_FREE_STRING(ECBFreeStringStub)
+{
+  return;
+}
+
+
+file_scope u32
+ECB_WriteToString(ecb_string *StringBuffer, char *String, u32 StringCount)
+{
+  u32 Result = 0;
+
+  char *ContentPtr = (char*)StringBuffer->Content;
+  while(*String)
+  {
+    *ContentPtr++ = *String++;
+
+    if(++Result > StringCount ||
+      (Result + StringBuffer->ContentSize > StringBuffer->ContentCapacity))
+    {
+      Result = 0;
+      break;
+    }
+  }
+
+  (char *)(StringBuffer->Content) += Result;
+  StringBuffer->ContentSize += Result;
+  return Result;
+}
+
 file_scope b32
 ECB_IsStringEqual(char* A, char* B)
 {
@@ -73,4 +117,15 @@ ECB_IsStringEqual(char* A, char* B)
   return Result;
 }
 
+file_scope u32
+ECB_GetStringLength(char* String)
+{
+  u32 Result = 0;
+  while(*String++)
+  {
+    Result++;
+  }
+
+  return Result;
+}
 #endif //@NOTE(Emilio): _ECB_UTILS_H_
