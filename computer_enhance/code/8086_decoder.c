@@ -3,7 +3,7 @@
 file_scope void
 DecoderGetFieldValueAndUpdateBitCount(decoder_field *Field, decoder_stream_pointer *StreamPtr)
 {
-  u32 ShiftValue = 8 - StreamPtr->BitCount;
+  u32 ShiftValue = 8 - (StreamPtr->BitCount + Field->FieldBitCount);
   if(Field->IsFieldExist)
   {
     Field->FieldValue = (*StreamPtr->Pointer >> ShiftValue) & Field->FieldMask;
@@ -60,7 +60,7 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
 }
 
 file_scope decoder_opcode
-DecoderGetOpCodeFromStream(char *InputStream)
+DecoderGetOpCodeFromStream(u8 *InputStream)
 {
   decoder_opcode Result = {};
 
@@ -97,7 +97,7 @@ DecoderPrintInstructionFromFields(char **WritePtr, decoder_opcode *Fields)
 {
   char PrintBuffer[TEMP_PRINT_BUFFER_SIZE];
   char* PrintPtr = PrintBuffer;
-  PrintPtr += sprintf(PrintPtr, "%s", Fields->OpCodeStats.OpCodeString);
+  PrintPtr += sprintf(PrintPtr, "%s ", Fields->OpCodeStats.OpCodeString);
 
   b32 IsWide = Fields->WideFlag.IsFieldExist || Fields->IsForcedWide;
   
@@ -116,7 +116,7 @@ DecoderPrintInstructionFromFields(char **WritePtr, decoder_opcode *Fields)
     {
       RMIndex += (8*IsWide);
     }
-    RegString = RMTable[RMIndex];
+    RMString = RMTable[RMIndex];
   }
 
   //@INCOMPLETE(Emilio): Lots of things not considered yet,
@@ -144,7 +144,7 @@ DecoderPrintInstructionFromFields(char **WritePtr, decoder_opcode *Fields)
 }
 
 file_scope void
-DecoderReadByteStream(char **Buffer, char *InputStream)
+DecoderReadByteStream(char **Buffer, u8 *InputStream)
 {
   ECB_ASSERT(InputStream);
 
