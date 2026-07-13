@@ -139,7 +139,7 @@ DecoderPrintInstructionFromFields(char **WritePtr, decoder_opcode *Fields)
   }
   else
   {
-    printf("%s\n", PrintPtr);
+    //@INCOMPLETE @TODO(Emilio): printf is not a cross compatible function, thank you windows..
   }
 }
 
