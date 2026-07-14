@@ -149,45 +149,55 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
 }
 
 file_scope void
+DecoderPrintSingleInstruction(ecb_string *WriteBuffer, decoder_opcode *Fields)
+{
+  WriteBuffer->ContentSize +=
+    DecoderPrintInstructionFromFields(WriteBuffer->Content, Fields);
+}
+
+file_scope decoder_opcode
+DecoderReadSingleInstruction(u8 *InputStream, u32 *ReturnNewInstructionOffset)
+{
+  ECB_ASSERT(InputStream);
+
+  decoder_opcode Result = {};
+
+  Result = DecoderGetOpCodeFromStream(InputStream);
+
+  if(Result.OpCodeStats.OpCode)
+  {
+    decoder_stream_pointer StreamPtr = {};
+    StreamPtr.Pointer  = (u8*)InputStream;
+    StreamPtr.BitCount = 0;
+
+    DecoderExtractValuesFromField(&Result, &StreamPtr);
+
+    if(ReturnNewInstructionOffset)
+    {
+      *ReturnNewInstructionOffset = StreamPtr.Pointer - InputStream;
+    }
+  }
+
+  return Result;
+}
+
+file_scope void
 DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream)
 {
   ECB_ASSERT(InputStream);
 
-  decoder_stream_pointer StreamPtr = {};
-  StreamPtr.Pointer  = (u8*)InputStream;
-  StreamPtr.BitCount = 0;
-
   char InstructionByte = 0;
-  while(*StreamPtr.Pointer)
+  u32 InstructionCount = 0;
+  while(*InputStream)
   {
-    decoder_opcode OpCodeFields = DecoderGetOpCodeFromStream(StreamPtr.Pointer);
+    decoder_opcode OpCodeFields = DecoderGetOpCodeFromStream(InputStream);
     if(OpCodeFields.OpCodeStats.OpCode)
     {
-      DecoderExtractValuesFromField(&OpCodeFields, &StreamPtr);
+      OpCodeFields = DecoderReadSingleInstruction(InputStream, &InstructionCount);
+      DecoderPrintSingleInstruction(WriteBuffer, &OpCodeFields);
 
-      WriteBuffer->ContentSize +=
-        DecoderPrintInstructionFromFields(WriteBuffer->Content, &OpCodeFields);
+      InputStream += InstructionCount;
     }
   }
 }
 
-file_scope void
-Decoder___(char *WriteBuffer, u8 *InputStream)
-{
-  ECB_ASSERT(InputStream);
-
-  decoder_stream_pointer StreamPtr = {};
-  StreamPtr.Pointer  = (u8*)InputStream;
-  StreamPtr.BitCount = 0;
-
-  char InstructionByte = 0;
-  while(*StreamPtr.Pointer)
-  {
-    decoder_opcode OpCodeFields = DecoderGetOpCodeFromStream(StreamPtr.Pointer);
-    if(OpCodeFields.OpCodeStats.OpCode)
-    {
-      DecoderExtractValuesFromField(&OpCodeFields, &StreamPtr);
-      DecoderPrintInstructionFromFields(WriteBuffer, &OpCodeFields);
-    }
-  }
-}
