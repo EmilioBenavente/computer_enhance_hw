@@ -14,7 +14,7 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance, PWSTR CmdLine, s32 CmdShow)
   DecoderReadByteStream(&WriteStream, InputStream.Content);
 
   ecb_file_result WriteFile = {};
-  WriteFile.Content = WriteStream.Content;
+  WriteFile.Content = (u8*)(WriteStream.Content) - WriteStream.ContentSize;
   WriteFile.ContentSize = WriteStream.ContentSize;
   Win32WriteEntireFile(&WriteFile, "dump.txt");
   Win32FreeFile(&InputStream);

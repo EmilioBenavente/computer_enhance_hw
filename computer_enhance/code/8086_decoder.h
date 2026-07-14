@@ -6,7 +6,7 @@
 #include "8086_CPU_def.h"
 #include "ecb_utils.h"
 
-#define TEST_FILE "../../../computer_enhance/perfaware/part1/listing_0037_single_register_mov"
+#define TEST_FILE "../../../computer_enhance/perfaware/part1/listing_0038_many_register_mov"
 #define TEMP_PRINT_BUFFER_SIZE 1024
 
 //@NOTE(Emilio): OpCode SHOULD be extracted vis OpCode = (OpCode >> Shift) & Mask;

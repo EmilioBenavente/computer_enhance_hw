@@ -138,7 +138,8 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
 
   if(WritePtr)
   {
-    Result = sprintf(WritePtr, "%s", PrintBuffer);
+    //@HARDCODE(Emilio): We should make functions for new line and comments
+    Result = sprintf(WritePtr, "%s\n", PrintBuffer);
   }
   else
   {
@@ -151,8 +152,14 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
 file_scope void
 DecoderPrintSingleInstruction(ecb_string *WriteBuffer, decoder_opcode *Fields)
 {
-  WriteBuffer->ContentSize +=
+  u32 BytesRead =
     DecoderPrintInstructionFromFields(WriteBuffer->Content, Fields);
+
+  WriteBuffer->ContentSize +=
+    BytesRead;
+  (u8 *)(WriteBuffer->Content) +=
+    BytesRead;
+
 }
 
 file_scope decoder_opcode
