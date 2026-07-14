@@ -102,7 +102,7 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
   char* PrintPtr = PrintBuffer;
   PrintPtr += sprintf(PrintPtr, "%s ", Fields->OpCodeStats.OpCodeString);
 
-  b32 IsWide = Fields->WideFlag.IsFieldExist || Fields->IsForcedWide;
+  b32 IsWide = Fields->WideFlag.FieldValue || Fields->IsForcedWide;
   
   char* RegString = 0;
   if(Fields->Reg.IsFieldExist)
