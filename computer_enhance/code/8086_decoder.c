@@ -35,26 +35,30 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
   if(IsDisplacementExist)
   {
     Fields->Displacement.IsFieldExist = 1;
-    Fields->Displacement.FieldValue = *StreamPtr->Pointer;
-    StreamPtr++;
+    Fields->Displacement.FieldValue = (s32)((s8)*StreamPtr->Pointer);
+    StreamPtr->Pointer++;
 
-    if(Fields->WideFlag.IsFieldExist || Fields->IsForcedWide)
+    if((Fields->Mod.FieldValue == 0x2) ||
+      (Fields->Mod.FieldValue == 0x0 && Fields->RM.FieldValue == 7))
     {
-      Fields->Displacement.FieldValue |= (*StreamPtr->Pointer < 8);
-      StreamPtr++;
+      s32 OriginalValue = (Fields->Displacement.FieldValue & 0xFF);
+      Fields->Displacement.FieldValue &= 0xFF;
+      Fields->Displacement.FieldValue |= (*StreamPtr->Pointer << 8);
+      StreamPtr->Pointer++;
     }
   }
 
   if(Fields->Data.IsFieldExist)
   {
-    Fields->Data.IsFieldExist = 1;
-    Fields->Data.IsFieldExist = *StreamPtr->Pointer;
-    StreamPtr++;
+    Fields->Data.FieldValue = (s32)((s8)*StreamPtr->Pointer);
+    StreamPtr->Pointer++;
 
-    if(Fields->WideFlag.IsFieldExist || Fields->IsForcedWide)
+    if(Fields->WideFlag.FieldValue || Fields->IsForcedWide)
     {
-      Fields->Data.IsFieldExist |= (*StreamPtr->Pointer << 8);
-      StreamPtr++;
+      s32 OriginalValue = (Fields->Data.FieldValue & 0xFF);
+      Fields->Data.FieldValue &= 0xFF;
+      Fields->Data.FieldValue |= (*StreamPtr->Pointer << 8);
+      StreamPtr->Pointer++;
     }
   }
 }
@@ -62,6 +66,8 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
 file_scope decoder_opcode
 DecoderGetOpCodeFromStream(u8 *InputStream)
 {
+  ECB_ASSERT(OpCodes8086Table[OP_CODE_TABLE_8086_SIZE - 1].OpCodeStats.OpCode);
+
   decoder_opcode Result = {};
 
   s32 OpCodeIndex = 0;
@@ -111,7 +117,7 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
     RegString = RegTable[RegIndex];
   }
 
-  char* RMString = 0;
+  char RMString[64] = {0};
   if(Fields->RM.IsFieldExist)
   {
     u32 RMIndex = Fields->RM.FieldValue + (8*Fields->Mod.FieldValue);
@@ -119,21 +125,68 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
     {
       RMIndex += (8*IsWide);
     }
-    RMString = RMTable[RMIndex];
+
+    if(Fields->Mod.FieldValue == 3)
+    {
+      sprintf(RMString, "%s", RMTable[RMIndex]);
+    }
+    else
+    {
+      sprintf(RMString, "[%s]", RMTable[RMIndex]);
+
+      if(Fields->Displacement.IsFieldExist)
+      {
+        s16 DisplacementValue = (s16)Fields->Displacement.FieldValue;
+        if(DisplacementValue == 0)
+        {
+          sprintf(RMString, "[%s]", RMTable[RMIndex]);
+        }
+        else if(DisplacementValue > 0)
+        {
+          sprintf(RMString, "[%s + %d]", RMTable[RMIndex], DisplacementValue);
+        }
+        else
+        {
+          sprintf(RMString, "[%s - %d]", RMTable[RMIndex], (DisplacementValue * -1));
+        }
+      }
+    }
   }
 
-  //@INCOMPLETE(Emilio): Lots of things not considered yet,
-  //  for further instructions, such as if the Reg Field
-  //  does not exist. Plus Displacement and Data Fields.
 
-  if(Fields->DestinationFlag.FieldValue)
+  if(Fields->Data.IsFieldExist)
   {
-    PrintPtr += sprintf(PrintPtr, "%s, %s", RegString, RMString);
+    s16 DataValue = (s16)Fields->Data.FieldValue;
+    if(DataValue > 0)
+    {
+      PrintPtr += sprintf(PrintPtr, "%s, %d", RegString, DataValue);
+    }
+    else
+    {
+      PrintPtr += sprintf(PrintPtr, "%s, -%d", RegString, (DataValue * -1));
+    }
   }
   else
   {
-    PrintPtr += sprintf(PrintPtr, "%s, %s", RMString, RegString);
+  //@NOTE(Emilio): The basic case allows us to switch REG and RM field
+  //  based on DestinationFlag, but when both registers aren't present
+  //  we need to force one of the registers to act like the other
+  //  making this scheme useless.
+#if 1
+    //@INCOMPLETE(Emilio): Lots of things not considered yet,
+    //  for further instructions, such as if the Reg Field
+    //  does not exist. Plus Displacement and Data Fields.
+    if(Fields->DestinationFlag.FieldValue)
+    {
+      PrintPtr += sprintf(PrintPtr, "%s, %s", RegString, RMString);
+    }
+    else
+    {
+      PrintPtr += sprintf(PrintPtr, "%s, %s", RMString, RegString);
+    }
+#endif
   }
+
 
 
   if(WritePtr)
@@ -204,6 +257,10 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream)
       DecoderPrintSingleInstruction(WriteBuffer, &OpCodeFields);
 
       InputStream += InstructionCount;
+    }
+    else
+    {
+      return;
     }
   }
 }

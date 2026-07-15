@@ -6,7 +6,7 @@
 #include "8086_CPU_def.h"
 #include "ecb_utils.h"
 
-#define TEST_FILE "../../../computer_enhance/perfaware/part1/listing_0038_many_register_mov"
+#define TEST_FILE "../../../computer_enhance/perfaware/part1/listing_0039_more_movs"
 #define TEMP_PRINT_BUFFER_SIZE 1024
 
 //@NOTE(Emilio): OpCode SHOULD be extracted vis OpCode = (OpCode >> Shift) & Mask;
@@ -74,7 +74,10 @@ char *RMTable[RM_TABLE_8086_SIZE] =
 decoder_opcode OpCodes8086Table[OP_CODE_TABLE_8086_SIZE] =
 {
   OP_MOV_RM_RM,
-  OP_MOV_IMM_RM
+  OP_MOV_IMM_RM,
+  OP_MOV_IMM_REG
+
+
 };
 
 #endif /* _8086_DECODER_H_ */
