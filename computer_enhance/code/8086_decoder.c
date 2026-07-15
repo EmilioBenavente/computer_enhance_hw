@@ -3,18 +3,24 @@
 file_scope void
 DecoderGetFieldValueAndUpdateBitCount(decoder_field *Field, decoder_stream_pointer *StreamPtr)
 {
-  u32 ShiftValue = 8 - (StreamPtr->BitCount + Field->FieldBitCount);
-  if(Field->IsFieldExist)
+  if(Field->IsFieldPadding)
   {
-    Field->FieldValue = (*StreamPtr->Pointer >> ShiftValue) & Field->FieldMask;
     StreamPtr->BitCount += Field->FieldBitCount;
-
-
-    if(StreamPtr->BitCount > 7)
+  }
+  else
+  {
+    u32 ShiftValue = 8 - (StreamPtr->BitCount + Field->FieldBitCount);
+    if(Field->IsFieldExist)
     {
-      StreamPtr->BitCount -= 8;
-      StreamPtr->Pointer++;
+      Field->FieldValue = (*StreamPtr->Pointer >> ShiftValue) & Field->FieldMask;
+      StreamPtr->BitCount += Field->FieldBitCount;
     }
+  }
+
+  if(StreamPtr->BitCount > 7)
+  {
+    StreamPtr->BitCount -= 8;
+    StreamPtr->Pointer++;
   }
 }
 
@@ -109,7 +115,7 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
   PrintPtr += sprintf(PrintPtr, "%s ", Fields->OpCodeStats.OpCodeString);
 
   b32 IsWide = Fields->WideFlag.FieldValue || Fields->IsForcedWide;
-  
+ 
   char* RegString = 0;
   if(Fields->Reg.IsFieldExist)
   {
@@ -157,13 +163,28 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
   if(Fields->Data.IsFieldExist)
   {
     s16 DataValue = (s16)Fields->Data.FieldValue;
-    if(DataValue > 0)
+    if(Fields->Reg.IsFieldExist)
     {
-      PrintPtr += sprintf(PrintPtr, "%s, %d", RegString, DataValue);
+      if(DataValue > 0)
+      {
+        PrintPtr += sprintf(PrintPtr, "%s, %d", RegString, DataValue);
+      }
+      else
+      {
+        PrintPtr += sprintf(PrintPtr, "%s, -%d", RegString, (DataValue * -1));
+      }
     }
     else
     {
-      PrintPtr += sprintf(PrintPtr, "%s, -%d", RegString, (DataValue * -1));
+      char* ImplicitSize = IsWide ? "word" :"byte";
+      if(DataValue > 0)
+      {
+        PrintPtr += sprintf(PrintPtr, "%s, %s %d", RMString, ImplicitSize, DataValue);
+      }
+      else
+      {
+        PrintPtr += sprintf(PrintPtr, "%s, %s -%d", RMString, ImplicitSize, (DataValue * -1));
+      }
     }
   }
   else

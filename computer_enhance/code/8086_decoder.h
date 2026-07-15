@@ -6,7 +6,7 @@
 #include "8086_CPU_def.h"
 #include "ecb_utils.h"
 
-#define TEST_FILE "../../../computer_enhance/perfaware/part1/listing_0039_more_movs"
+#define TEST_FILE "../../../computer_enhance/perfaware/part1/listing_0040_challenge_movs"
 #define TEMP_PRINT_BUFFER_SIZE 1024
 
 //@NOTE(Emilio): OpCode SHOULD be extracted vis OpCode = (OpCode >> Shift) & Mask;
@@ -22,6 +22,8 @@ typedef plex
 typedef plex
 {
   b32 IsFieldExist;
+  b32 IsFieldPadding;
+
   s32 FieldMask;
   s32 FieldBitCount;
   s32 FieldValue;

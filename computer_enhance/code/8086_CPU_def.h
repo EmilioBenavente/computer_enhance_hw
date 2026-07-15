@@ -106,16 +106,17 @@ enum OP_CODES_8086
 #define EMPTY_FIELD                                 {0, 0, 0, 0}
 #define OP_CODE_FIELD(_mnemonic, _opcode, _mask, _shift, _bitcount)       {_mnemonic, _opcode, _mask, _shift, _bitcount}
 
-#define D_FIELD                                     {1, 0x1, 1, 0}
-#define W_FIELD                                     {1, 0x1, 1, 0}
-#define MOD_FIELD                                   {1, 0x3, 2, 0}
-#define REG_FIELD                                   {1, 0x7, 3, 0}
-#define RM_FIELD                                    {1, 0x7, 3, 0}
-#define DATA_FIELD                                  {1, 0x7, 3, 0}
-#define FIXED_FIELD(_mask, _bitcount, _num)         {1, _mask, _bitcount, _num}
+#define D_FIELD                                     {1, 0, 0x1, 1, 0}
+#define W_FIELD                                     {1, 0, 0x1, 1, 0}
+#define MOD_FIELD                                   {1, 0, 0x3, 2, 0}
+#define REG_FIELD                                   {1, 0, 0x7, 3, 0}
+#define RM_FIELD                                    {1, 0, 0x7, 3, 0}
+#define DATA_FIELD                                  {1, 0, 0x7, 3, 0}
+#define PADDING_FIELD(_bitcount)                    {0, 1, 0, _bitcount, 0}
+#define FIXED_FIELD(_mask, _bitcount, _num)         {1, 0, _mask, _bitcount, _num}
 
 #define OP_MOV_RM_RM    {OP_CODE_FIELD("mov", 0x22, 0x3F, 2, 6), D_FIELD, W_FIELD, MOD_FIELD, REG_FIELD, RM_FIELD, EMPTY_FIELD, EMPTY_FIELD}
-#define OP_MOV_IMM_RM   {OP_CODE_FIELD("mov", 0x63, 0x7F, 1, 7), EMPTY_FIELD, W_FIELD, MOD_FIELD, EMPTY_FIELD, RM_FIELD, EMPTY_FIELD, DATA_FIELD}
+#define OP_MOV_IMM_RM   {OP_CODE_FIELD("mov", 0x63, 0x7F, 1, 7), EMPTY_FIELD, W_FIELD, MOD_FIELD, PADDING_FIELD(3), RM_FIELD, EMPTY_FIELD, DATA_FIELD}
 #define OP_MOV_IMM_REG   {OP_CODE_FIELD("mov", 0x0B, 0x0F, 4, 4), EMPTY_FIELD, W_FIELD, EMPTY_FIELD, REG_FIELD, EMPTY_FIELD, EMPTY_FIELD, DATA_FIELD}
 
 //#define OP_MOV_MEM_ACC   {OP_CODE_FIELD("mov", 0x50, 0x0B, 1, 7), EMPTY_FIELD, W_FIELD, EMPTY_FIELD, REG_FIELD, EMPTY_FIELD, EMPTY_FIELD, EMPTY_FIELD}
