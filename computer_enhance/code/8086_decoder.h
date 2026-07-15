@@ -53,7 +53,6 @@ typedef plex
   u32 BitCount;
 } decoder_stream_pointer;
 
-
 char *RegTable[REG_TABLE_8086_SIZE] =
 {
   "al", "cl", "dl", "bl",
@@ -62,6 +61,8 @@ char *RegTable[REG_TABLE_8086_SIZE] =
   "sp", "bp", "si", "di"
 };
 
+
+#define RM_16BIT_IMM_CASE 0x6
 char *RMTable[RM_TABLE_8086_SIZE] =
 {
   "bx + si", "bx + di", "bp + si", "bp + di", "si", "di", "NOOO!", "bx",
@@ -70,8 +71,6 @@ char *RMTable[RM_TABLE_8086_SIZE] =
   "al", "cl", "dl", "bl", "ah", "ch", "dh", "bh",
   "ax", "cx", "dx", "bx", "sp", "bp", "si", "di"
 };
-
-
 
 decoder_opcode OpCodes8086Table[OP_CODE_TABLE_8086_SIZE] =
 {

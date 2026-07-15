@@ -37,7 +37,7 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
 
   b32 IsDisplacementExist = (Fields->Mod.FieldValue == 0x1) ||
     (Fields->Mod.FieldValue == 0x2)                       ||
-    (Fields->Mod.FieldValue == 0x0 && Fields->RM.FieldValue == 7);
+    (Fields->Mod.FieldValue == 0x0 && Fields->RM.FieldValue == RM_16BIT_IMM_CASE);
   if(IsDisplacementExist)
   {
     Fields->Displacement.IsFieldExist = 1;
@@ -45,7 +45,7 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
     StreamPtr->Pointer++;
 
     if((Fields->Mod.FieldValue == 0x2) ||
-      (Fields->Mod.FieldValue == 0x0 && Fields->RM.FieldValue == 7))
+      (Fields->Mod.FieldValue == 0x0 && Fields->RM.FieldValue == RM_16BIT_IMM_CASE))
     {
       s32 OriginalValue = (Fields->Displacement.FieldValue & 0xFF);
       Fields->Displacement.FieldValue &= 0xFF;
@@ -140,20 +140,35 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
     {
       sprintf(RMString, "[%s]", RMTable[RMIndex]);
 
+      //@TODO(Emilio): Factor out this if statment
       if(Fields->Displacement.IsFieldExist)
       {
         s16 DisplacementValue = (s16)Fields->Displacement.FieldValue;
-        if(DisplacementValue == 0)
+        if(Fields->RM.FieldValue == RM_16BIT_IMM_CASE)
         {
-          sprintf(RMString, "[%s]", RMTable[RMIndex]);
-        }
-        else if(DisplacementValue > 0)
-        {
-          sprintf(RMString, "[%s + %d]", RMTable[RMIndex], DisplacementValue);
+          if(DisplacementValue > 0)
+          {
+            sprintf(RMString, "[%d]", DisplacementValue);
+          }
+          else
+          {
+            sprintf(RMString, "[-%d]", (DisplacementValue * -1));
+          }
         }
         else
         {
-          sprintf(RMString, "[%s - %d]", RMTable[RMIndex], (DisplacementValue * -1));
+          if(DisplacementValue == 0)
+          {
+            sprintf(RMString, "[%s]", RMTable[RMIndex]);
+          }
+          else if(DisplacementValue > 0)
+          {
+            sprintf(RMString, "[%s + %d]", RMTable[RMIndex], DisplacementValue);
+          }
+          else
+          {
+            sprintf(RMString, "[%s - %d]", RMTable[RMIndex], (DisplacementValue * -1));
+          }
         }
       }
     }
