@@ -286,10 +286,9 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream)
   u32 InstructionCount = 0;
   while(*InputStream)
   {
-    decoder_opcode OpCodeFields = DecoderGetOpCodeFromStream(InputStream);
+    decoder_opcode OpCodeFields = DecoderReadSingleInstruction(InputStream, &InstructionCount);
     if(OpCodeFields.OpCodeStats.OpCode)
     {
-      OpCodeFields = DecoderReadSingleInstruction(InputStream, &InstructionCount);
       DecoderPrintSingleInstruction(WriteBuffer, &OpCodeFields);
 
       InputStream += InstructionCount;
