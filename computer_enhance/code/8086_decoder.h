@@ -21,8 +21,7 @@ typedef plex
 
 typedef plex
 {
-  b32 IsFieldExist;
-  b32 IsFieldPadding;
+  u32 StateFlags;
 
   s32 FieldMask;
   s32 FieldBitCount;
@@ -76,9 +75,9 @@ decoder_opcode OpCodes8086Table[OP_CODE_TABLE_8086_SIZE] =
 {
   OP_MOV_RM_RM,
   OP_MOV_IMM_RM,
-  OP_MOV_IMM_REG
-
-
+  OP_MOV_IMM_REG,
+  OP_MOV_MEM_ACC,
+  OP_MOV_ACC_MEM
 };
 
 #endif /* _8086_DECODER_H_ */

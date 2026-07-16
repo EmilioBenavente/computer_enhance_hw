@@ -3,14 +3,15 @@
 file_scope void
 DecoderGetFieldValueAndUpdateBitCount(decoder_field *Field, decoder_stream_pointer *StreamPtr)
 {
-  if(Field->IsFieldPadding)
+  if(((Field->StateFlags & FIELD_IS_PADDING) == FIELD_IS_PADDING) ||
+    ((Field->StateFlags  & FIELD_IS_IMMPLIED) == FIELD_IS_IMMPLIED))
   {
     StreamPtr->BitCount += Field->FieldBitCount;
   }
   else
   {
     u32 ShiftValue = 8 - (StreamPtr->BitCount + Field->FieldBitCount);
-    if(Field->IsFieldExist)
+    if((Field->StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
     {
       Field->FieldValue = (*StreamPtr->Pointer >> ShiftValue) & Field->FieldMask;
       StreamPtr->BitCount += Field->FieldBitCount;
@@ -36,15 +37,18 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
   DecoderGetFieldValueAndUpdateBitCount(&Fields->RM, StreamPtr);
 
   b32 IsDisplacementExist = (Fields->Mod.FieldValue == 0x1) ||
-    (Fields->Mod.FieldValue == 0x2)                       ||
+    (Fields->Mod.FieldValue == 0x2)                         ||
+    //@TODO(Emilio): See if this works for every case involving no mod fields??
+    (Fields->Mod.StateFlags == FIELD_DOES_NOT_EXIST)        ||
     (Fields->Mod.FieldValue == 0x0 && Fields->RM.FieldValue == RM_16BIT_IMM_CASE);
   if(IsDisplacementExist)
   {
-    Fields->Displacement.IsFieldExist = 1;
+    Fields->Displacement.StateFlags |= FIELD_EXISTS;
     Fields->Displacement.FieldValue = (s32)((s8)*StreamPtr->Pointer);
     StreamPtr->Pointer++;
 
-    if((Fields->Mod.FieldValue == 0x2) ||
+    if((Fields->Mod.FieldValue == 0x2)                      ||
+      (Fields->Mod.StateFlags == FIELD_DOES_NOT_EXIST)      ||
       (Fields->Mod.FieldValue == 0x0 && Fields->RM.FieldValue == RM_16BIT_IMM_CASE))
     {
       s32 OriginalValue = (Fields->Displacement.FieldValue & 0xFF);
@@ -54,7 +58,7 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
     }
   }
 
-  if(Fields->Data.IsFieldExist)
+  if((Fields->Data.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
   {
     Fields->Data.FieldValue = (s32)((s8)*StreamPtr->Pointer);
     StreamPtr->Pointer++;
@@ -117,31 +121,39 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
   b32 IsWide = Fields->WideFlag.FieldValue || Fields->IsForcedWide;
  
   char* RegString = 0;
-  if(Fields->Reg.IsFieldExist)
+  if((Fields->Reg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
   {
     u32 RegIndex = Fields->Reg.FieldValue + (8*IsWide);
     RegString = RegTable[RegIndex];
   }
 
   char RMString[64] = {0};
-  if(Fields->RM.IsFieldExist)
+  if(((Fields->RM.StateFlags & FIELD_EXISTS) == FIELD_EXISTS) ||
+     ((Fields->Displacement.StateFlags & FIELD_EXISTS) == FIELD_EXISTS))
   {
     u32 RMIndex = Fields->RM.FieldValue + (8*Fields->Mod.FieldValue);
-    if(Fields->Mod.FieldValue == 0x3)
+    if(Fields->Mod.StateFlags == FIELD_DOES_NOT_EXIST)
+    {
+      s16 DisplacementValue = (s16)Fields->Displacement.FieldValue;
+      if(DisplacementValue > 0)
+      {
+        sprintf(RMString, "[%d]", DisplacementValue);
+      }
+      else
+      {
+        sprintf(RMString, "[-%d]", (DisplacementValue * -1));
+      }
+    }
+    else if(Fields->Mod.FieldValue == 0x3)
     {
       RMIndex += (8*IsWide);
-    }
-
-    if(Fields->Mod.FieldValue == 3)
-    {
       sprintf(RMString, "%s", RMTable[RMIndex]);
     }
     else
     {
       sprintf(RMString, "[%s]", RMTable[RMIndex]);
 
-      //@TODO(Emilio): Factor out this if statment
-      if(Fields->Displacement.IsFieldExist)
+      if((Fields->Displacement.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
       {
         s16 DisplacementValue = (s16)Fields->Displacement.FieldValue;
         if(Fields->RM.FieldValue == RM_16BIT_IMM_CASE)
@@ -175,10 +187,10 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
   }
 
 
-  if(Fields->Data.IsFieldExist)
+  if((Fields->Data.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
   {
     s16 DataValue = (s16)Fields->Data.FieldValue;
-    if(Fields->Reg.IsFieldExist)
+    if((Fields->Reg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
     {
       if(DataValue > 0)
       {
@@ -208,10 +220,6 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
   //  based on DestinationFlag, but when both registers aren't present
   //  we need to force one of the registers to act like the other
   //  making this scheme useless.
-#if 1
-    //@INCOMPLETE(Emilio): Lots of things not considered yet,
-    //  for further instructions, such as if the Reg Field
-    //  does not exist. Plus Displacement and Data Fields.
     if(Fields->DestinationFlag.FieldValue)
     {
       PrintPtr += sprintf(PrintPtr, "%s, %s", RegString, RMString);
@@ -220,7 +228,6 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
     {
       PrintPtr += sprintf(PrintPtr, "%s, %s", RMString, RegString);
     }
-#endif
   }
 
 
