@@ -244,10 +244,8 @@ DecoderPrintSingleInstruction(ecb_string *WriteBuffer, decoder_opcode *Fields)
   u32 BytesRead =
     DecoderPrintInstructionFromFields(WriteBuffer->Content, Fields);
 
-  WriteBuffer->ContentSize +=
-    BytesRead;
-  (u8 *)(WriteBuffer->Content) +=
-    BytesRead;
+  WriteBuffer->ContentSize += BytesRead;
+  WriteBuffer->Content = (u8 *)WriteBuffer->Content + BytesRead;
 
 }
 

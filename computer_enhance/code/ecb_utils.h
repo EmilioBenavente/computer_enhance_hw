@@ -96,7 +96,7 @@ ECB_WriteToString(ecb_string *StringBuffer, char *String, u32 StringCount)
     }
   }
 
-  (char *)(StringBuffer->Content) += Result;
+  StringBuffer->Content = (char *)StringBuffer->Content + Result;
   StringBuffer->ContentSize += Result;
   return Result;
 }
