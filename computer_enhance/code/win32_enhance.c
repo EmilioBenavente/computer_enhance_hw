@@ -9,7 +9,7 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance, PWSTR CmdLine, s32 CmdShow)
 
   char *InitialContent = "bits 16\n";
   ecb_string WriteStream =
-    Win32CreateString(InitialContent, ECB_GetStringLength(InitialContent), 512);
+    Win32CreateString(InitialContent, ECB_GetStringLength(InitialContent), 4*1024);
 
   DecoderReadByteStream(&WriteStream, InputStream.Content, InputStream.ContentSize);
 
