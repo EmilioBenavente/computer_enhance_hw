@@ -11,7 +11,7 @@ main(s32 ArgCount, char **Args)
   ecb_string WriteStream =
     LinuxCreateString(InitialContent, ECB_GetStringLength(InitialContent), 512);
 
-  DecoderReadByteStream(&WriteStream, InputStream.Content);
+  DecoderReadByteStream(&WriteStream, InputStream.Content, InputStream.ContentSize);
 
   ecb_file_result WriteFile = {};
   WriteFile.Content = (u8*)(WriteStream.Content) - WriteStream.ContentSize;

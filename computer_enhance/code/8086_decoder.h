@@ -6,7 +6,7 @@
 #include "8086_CPU_def.h"
 #include "ecb_utils.h"
 
-#define TEST_FILE "../../../computer_enhance/perfaware/part1/listing_0040_challenge_movs"
+#define TEST_FILE "../../../computer_enhance/perfaware/part1/listing_0041_add_sub_cmp_jnz"
 #define TEMP_PRINT_BUFFER_SIZE 1024
 
 //@NOTE(Emilio): OpCode SHOULD be extracted vis OpCode = (OpCode >> Shift) & Mask;
@@ -35,6 +35,7 @@ typedef plex
 
   decoder_field DestinationFlag;
   decoder_field WideFlag;
+  decoder_field SignExtendFlag;
 
   decoder_field Mod;
   decoder_field Reg;
@@ -77,7 +78,10 @@ decoder_opcode OpCodes8086Table[OP_CODE_TABLE_8086_SIZE] =
   OP_MOV_IMM_RM,
   OP_MOV_IMM_REG,
   OP_MOV_MEM_ACC,
-  OP_MOV_ACC_MEM
+  OP_MOV_ACC_MEM,
+  OP_ADD_RM_RM,
+  OP_ADD_IMM_RM,
+  OP_ADD_IMM_ACC
 };
 
 #endif /* _8086_DECODER_H_ */

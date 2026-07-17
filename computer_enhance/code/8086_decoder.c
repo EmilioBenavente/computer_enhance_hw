@@ -31,6 +31,7 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
   StreamPtr->BitCount += Fields->OpCodeStats.BitCount;
 
   DecoderGetFieldValueAndUpdateBitCount(&Fields->DestinationFlag, StreamPtr);
+  DecoderGetFieldValueAndUpdateBitCount(&Fields->SignExtendFlag, StreamPtr);
   DecoderGetFieldValueAndUpdateBitCount(&Fields->WideFlag, StreamPtr);
   DecoderGetFieldValueAndUpdateBitCount(&Fields->Mod, StreamPtr);
   DecoderGetFieldValueAndUpdateBitCount(&Fields->Reg, StreamPtr);
@@ -39,7 +40,7 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
   b32 IsDisplacementExist = (Fields->Mod.FieldValue == 0x1) ||
     (Fields->Mod.FieldValue == 0x2)                         ||
     //@TODO(Emilio): See if this works for every case involving no mod fields??
-    (Fields->Mod.StateFlags == FIELD_DOES_NOT_EXIST)        ||
+    ((Fields->Mod.StateFlags == FIELD_DOES_NOT_EXIST) && (Fields->Data.StateFlags == FIELD_DOES_NOT_EXIST)) ||
     (Fields->Mod.FieldValue == 0x0 && Fields->RM.FieldValue == RM_16BIT_IMM_CASE);
   if(IsDisplacementExist)
   {
@@ -65,10 +66,14 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
 
     if(Fields->WideFlag.FieldValue || Fields->IsForcedWide)
     {
-      s32 OriginalValue = (Fields->Data.FieldValue & 0xFF);
-      Fields->Data.FieldValue &= 0xFF;
-      Fields->Data.FieldValue |= (*StreamPtr->Pointer << 8);
-      StreamPtr->Pointer++;
+      if((Fields->SignExtendFlag.StateFlags == FIELD_DOES_NOT_EXIST)      ||
+        ((Fields->SignExtendFlag.StateFlags & FIELD_EXISTS == FIELD_EXISTS) && (Fields->SignExtendFlag.FieldValue == 0)))
+      {
+        s32 OriginalValue = (Fields->Data.FieldValue & 0xFF);
+        Fields->Data.FieldValue &= 0xFF;
+        Fields->Data.FieldValue |= (*StreamPtr->Pointer << 8);
+        StreamPtr->Pointer++;
+      }
     }
   }
 }
@@ -81,24 +86,39 @@ DecoderGetOpCodeFromStream(u8 *InputStream)
   decoder_opcode Result = {};
 
   s32 OpCodeIndex = 0;
-  b32 IsValidOpCode = 0;
-  while(!IsValidOpCode)
+  while(OpCodeIndex < OP_CODE_TABLE_8086_SIZE)
   {
-    decoder_opcode *TempOpCode = &OpCodes8086Table[OpCodeIndex];
-    char OpCode = *InputStream;
+    decoder_opcode *TableOpCodePtr = &OpCodes8086Table[OpCodeIndex];
+    char TestOpCode = *InputStream;
 
-    decoder_opcode_stats OpCodeTest = TempOpCode->OpCodeStats;
-    b32 OpCodeTestResult = (OpCode >> OpCodeTest.Shift) & OpCodeTest.Mask;
-    if(OpCodeTestResult == OpCodeTest.OpCode)
+    decoder_opcode_stats TableOpCode = TableOpCodePtr->OpCodeStats;
+    s32 TestOpCodeValue = (TestOpCode >> TableOpCode.Shift) & TableOpCode.Mask;
+    b32 TestOpCodeResult =
+      TestOpCodeValue == TableOpCode.OpCode;
+
+    if(TestOpCodeResult)
     {
-      Result.OpCodeStats      = TempOpCode->OpCodeStats;
-      Result.DestinationFlag  = TempOpCode->DestinationFlag;
-      Result.WideFlag         = TempOpCode->WideFlag;
-      Result.Mod              = TempOpCode->Mod;
-      Result.Reg              = TempOpCode->Reg;
-      Result.RM               = TempOpCode->RM;
-      Result.Displacement     = TempOpCode->Displacement;
-      Result.Data             = TempOpCode->Data;
+      if((TableOpCodePtr->Reg.StateFlags & FIELD_IS_OPCODE_EXTENDED))
+      {
+        char OpCodeExtended = *(InputStream+1);
+        OpCodeExtended      = (OpCodeExtended >> 3) & 0x7;
+
+        TestOpCodeResult =
+          (OpCodeExtended == TableOpCodePtr->Reg.FieldValue);
+      }
+    }
+
+    if(TestOpCodeResult)
+    {
+      Result.OpCodeStats      = TableOpCodePtr->OpCodeStats;
+      Result.DestinationFlag  = TableOpCodePtr->DestinationFlag;
+      Result.SignExtendFlag   = TableOpCodePtr->SignExtendFlag;
+      Result.WideFlag         = TableOpCodePtr->WideFlag;
+      Result.Mod              = TableOpCodePtr->Mod;
+      Result.Reg              = TableOpCodePtr->Reg;
+      Result.RM               = TableOpCodePtr->RM;
+      Result.Displacement     = TableOpCodePtr->Displacement;
+      Result.Data             = TableOpCodePtr->Data;
       break;
     }
 
@@ -156,7 +176,8 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
       if((Fields->Displacement.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
       {
         s16 DisplacementValue = (s16)Fields->Displacement.FieldValue;
-        if(Fields->RM.FieldValue == RM_16BIT_IMM_CASE)
+        if((Fields->Mod.FieldValue == 0x0) &&
+          (Fields->RM.FieldValue == RM_16BIT_IMM_CASE))
         {
           if(DisplacementValue > 0)
           {
@@ -199,6 +220,23 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
       else
       {
         PrintPtr += sprintf(PrintPtr, "%s, -%d", RegString, (DataValue * -1));
+      }
+    }
+    else if((Fields->SignExtendFlag.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
+    {
+      if((Fields->Mod.FieldValue != 0x3))
+      {
+        char* ImplicitSize = IsWide ? "word" :"byte";
+        PrintPtr += sprintf(PrintPtr, "%s ", ImplicitSize);
+      }
+
+      if(DataValue > 0)
+      {
+        PrintPtr += sprintf(PrintPtr, "%s, %d", RMString, DataValue);
+      }
+      else
+      {
+        PrintPtr += sprintf(PrintPtr, "%s, -%d", RMString, (DataValue * -1));
       }
     }
     else
@@ -265,7 +303,7 @@ DecoderReadSingleInstruction(u8 *InputStream, u32 *ReturnNewInstructionOffset)
 
   Result = DecoderGetOpCodeFromStream(InputStream);
 
-  if(Result.OpCodeStats.OpCode)
+  if(Result.OpCodeStats.OpCodeString)
   {
     decoder_stream_pointer StreamPtr = {};
     StreamPtr.Pointer  = (u8*)InputStream;
@@ -283,20 +321,21 @@ DecoderReadSingleInstruction(u8 *InputStream, u32 *ReturnNewInstructionOffset)
 }
 
 file_scope void
-DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream)
+DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream, u32 StreamSize)
 {
   ECB_ASSERT(InputStream);
 
   char InstructionByte = 0;
   u32 InstructionCount = 0;
-  while(*InputStream)
+  while(StreamSize)
   {
     decoder_opcode OpCodeFields = DecoderReadSingleInstruction(InputStream, &InstructionCount);
-    if(OpCodeFields.OpCodeStats.OpCode)
+    if(OpCodeFields.OpCodeStats.OpCodeString)
     {
       DecoderPrintSingleInstruction(WriteBuffer, &OpCodeFields);
 
       InputStream += InstructionCount;
+      StreamSize -= InstructionCount;
     }
     else
     {

@@ -3,11 +3,23 @@
 
 enum OP_CODE_TABLE_8086
 {
+  //@NOTE(Emilio): mov instructions
   MOV_RM_RM_8086,
   MOV_IMM_RM_8086,
   MOV_IMM_REG_8086,
   MOV_MEM_ACC_8086,
   MOV_ACC_MEM_8086,
+
+  //@NOTE(Emilio): add instructions
+  ADD_RM_RM_8086,
+  ADD_IMM_RM_8086,
+  ADD_IMM_ACC_8086,
+
+  //@NOTE(Emilio): sub instructions
+
+
+  //@NOTE(Emilio): cmp instructions
+
 
   OP_CODE_TABLE_8086_SIZE
 };
@@ -110,31 +122,47 @@ enum OP_CODES_8086
 
 #define ZERO_BIT_MASK     0x0
 #define SINGLE_BIT_MASK   0x1
-#define TWO_BIT_MASK      0x7
+#define TWO_BIT_MASK      0x3
 #define THREE_BIT_MASK    0x7
-#define FOUR_BIT_MASK     0x7
+#define FOUR_BIT_MASK     0xF
 #define SIX_BIT_MASK      0x3F
 #define SEVEN_BIT_MASK    0x7F
+#define EIGHT_BIT_MASK    0xFF
 
 #define FIELD_DOES_NOT_EXIST        (0 << 0)
 #define FIELD_EXISTS                (1 << 0)
 #define FIELD_IS_PADDING            ((1 << 1) | FIELD_DOES_NOT_EXIST)
 #define FIELD_IS_IMMPLIED           ((1 << 2) | FIELD_EXISTS)
+#define FIELD_IS_OPCODE_EXTENDED    ((1 << 3) | FIELD_IS_PADDING)
 
 #define D_FIELD                                     {FIELD_EXISTS, SINGLE_BIT_MASK, 1, 0}
+#define S_FIELD                                     {FIELD_EXISTS, SINGLE_BIT_MASK, 1, 0}
 #define W_FIELD                                     {FIELD_EXISTS, SINGLE_BIT_MASK, 1, 0}
 #define MOD_FIELD                                   {FIELD_EXISTS, TWO_BIT_MASK,    2, 0}
 #define REG_FIELD                                   {FIELD_EXISTS, THREE_BIT_MASK,  3, 0}
 #define RM_FIELD                                    {FIELD_EXISTS, THREE_BIT_MASK,  3, 0}
-#define DATA_FIELD                                  {FIELD_EXISTS, THREE_BIT_MASK,  3, 0}
+#define DATA_FIELD                                  {FIELD_EXISTS, EIGHT_BIT_MASK,  8, 0}
 #define PADDING_FIELD(_bitcount)                    {FIELD_IS_PADDING, ZERO_BIT_MASK, _bitcount, 0}
-#define IMMPLIED_FIELD(_mask,  _num)                {FIELD_IS_IMMPLIED,        _mask,         0, _num}
+#define IMMPLIED_FIELD(_num)                        {FIELD_IS_IMMPLIED,ZERO_BIT_MASK,  0, _num}
+#define OPCODE_FIELD(_mask, _bitcount, _num)        {FIELD_IS_OPCODE_EXTENDED, _mask, _bitcount, _num}
 
-#define OP_MOV_RM_RM    {OP_CODE_FIELD("mov", 0x22, SIX_BIT_MASK,   2, 6), D_FIELD, W_FIELD, MOD_FIELD, REG_FIELD, RM_FIELD, EMPTY_FIELD, EMPTY_FIELD}
-#define OP_MOV_IMM_RM   {OP_CODE_FIELD("mov", 0x63, SEVEN_BIT_MASK, 1, 7), EMPTY_FIELD, W_FIELD, MOD_FIELD, PADDING_FIELD(3), RM_FIELD, EMPTY_FIELD, DATA_FIELD}
-#define OP_MOV_IMM_REG  {OP_CODE_FIELD("mov", 0x0B, FOUR_BIT_MASK,  4, 4), EMPTY_FIELD, W_FIELD, EMPTY_FIELD, REG_FIELD, EMPTY_FIELD, EMPTY_FIELD, DATA_FIELD}
-#define OP_MOV_MEM_ACC  {OP_CODE_FIELD("mov", 0x50, SEVEN_BIT_MASK, 1, 7), IMMPLIED_FIELD(SINGLE_BIT_MASK, 1), W_FIELD, EMPTY_FIELD, IMMPLIED_FIELD(THREE_BIT_MASK, 0), EMPTY_FIELD, EMPTY_FIELD, EMPTY_FIELD}
-#define OP_MOV_ACC_MEM  {OP_CODE_FIELD("mov", 0x51, SEVEN_BIT_MASK, 1, 7), EMPTY_FIELD, W_FIELD, EMPTY_FIELD, IMMPLIED_FIELD(THREE_BIT_MASK, 0), EMPTY_FIELD, EMPTY_FIELD, EMPTY_FIELD}
+//@NOTE(Emilio): mov instructions
+#define OP_MOV_RM_RM    {OP_CODE_FIELD("mov", 0x22, SIX_BIT_MASK,   2, 6), D_FIELD, W_FIELD, EMPTY_FIELD, MOD_FIELD, REG_FIELD, RM_FIELD, EMPTY_FIELD, EMPTY_FIELD}
+#define OP_MOV_IMM_RM   {OP_CODE_FIELD("mov", 0x63, SEVEN_BIT_MASK, 1, 7), EMPTY_FIELD, W_FIELD, EMPTY_FIELD, MOD_FIELD, PADDING_FIELD(3), RM_FIELD, EMPTY_FIELD, DATA_FIELD}
+#define OP_MOV_IMM_REG  {OP_CODE_FIELD("mov", 0x0B, FOUR_BIT_MASK,  4, 4), EMPTY_FIELD, W_FIELD, EMPTY_FIELD, EMPTY_FIELD, REG_FIELD, EMPTY_FIELD, EMPTY_FIELD, DATA_FIELD}
+#define OP_MOV_MEM_ACC  {OP_CODE_FIELD("mov", 0x50, SEVEN_BIT_MASK, 1, 7), IMMPLIED_FIELD(1), W_FIELD, EMPTY_FIELD, EMPTY_FIELD, IMMPLIED_FIELD(0), EMPTY_FIELD, EMPTY_FIELD, EMPTY_FIELD}
+#define OP_MOV_ACC_MEM  {OP_CODE_FIELD("mov", 0x51, SEVEN_BIT_MASK, 1, 7), EMPTY_FIELD, W_FIELD, EMPTY_FIELD, EMPTY_FIELD, IMMPLIED_FIELD(0), EMPTY_FIELD, EMPTY_FIELD, EMPTY_FIELD}
+
+//@NOTE(Emilio): add instructions
+#define OP_ADD_RM_RM    {OP_CODE_FIELD("add", 0x00, SIX_BIT_MASK,   2, 6), D_FIELD, W_FIELD, EMPTY_FIELD, MOD_FIELD, REG_FIELD, RM_FIELD, EMPTY_FIELD, EMPTY_FIELD}
+#define OP_ADD_IMM_RM   {OP_CODE_FIELD("add", 0x20, SIX_BIT_MASK,   2, 6), EMPTY_FIELD, W_FIELD, S_FIELD, MOD_FIELD, OPCODE_FIELD(THREE_BIT_MASK,  3, 0x0), RM_FIELD, EMPTY_FIELD, DATA_FIELD}
+#define OP_ADD_IMM_ACC  {OP_CODE_FIELD("add", 0x02, SEVEN_BIT_MASK, 1, 7), EMPTY_FIELD, W_FIELD, EMPTY_FIELD, EMPTY_FIELD, IMMPLIED_FIELD(0), EMPTY_FIELD, EMPTY_FIELD, DATA_FIELD}
+
+
+//@NOTE(Emilio): sub instructions
+
+
+//@NOTE(Emilio): cmp instructions
 
 
 #endif /* _8086_CPU_H_ */

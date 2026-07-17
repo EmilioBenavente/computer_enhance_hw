@@ -11,7 +11,7 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance, PWSTR CmdLine, s32 CmdShow)
   ecb_string WriteStream =
     Win32CreateString(InitialContent, ECB_GetStringLength(InitialContent), 512);
 
-  DecoderReadByteStream(&WriteStream, InputStream.Content);
+  DecoderReadByteStream(&WriteStream, InputStream.Content, InputStream.ContentSize);
 
   ecb_file_result WriteFile = {};
   WriteFile.Content = (u8*)(WriteStream.Content) - WriteStream.ContentSize;
