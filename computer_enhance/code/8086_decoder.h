@@ -98,7 +98,6 @@ decoder_opcode OpCodes8086Table[OP_CODE_TABLE_8086_SIZE] =
   OP_CMP_IMM_RM,
   OP_CMP_IMM_ACC,
 
-#if 0
   //@NOTE(Emilio): RET instructions
   OP_RET,
   OP_RET_IMM_SP,
@@ -144,7 +143,6 @@ decoder_opcode OpCodes8086Table[OP_CODE_TABLE_8086_SIZE] =
   OP_HLT,
   OP_WAIT,
   OP_LOCK
-#endif
 
 };
 

@@ -219,7 +219,19 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
   if((Fields->Data.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
   {
     s16 DataValue = (s16)Fields->Data.FieldValue;
-    if((Fields->Reg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
+    if((Fields->Data.StateFlags & FIELD_IS_JMP_DATA) == FIELD_IS_JMP_DATA)
+    {
+      DataValue += 2;
+      if(DataValue >= 0)
+      {
+        PrintPtr += sprintf(PrintPtr, "$+%d", DataValue);
+      }
+      else
+      {
+        PrintPtr += sprintf(PrintPtr, "$-%d", (DataValue * -1));
+      }
+    }
+    else if((Fields->Reg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
     {
       if(DataValue > 0)
       {
