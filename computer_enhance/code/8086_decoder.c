@@ -30,32 +30,40 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
 {
   StreamPtr->BitCount += Fields->OpCodeStats.BitCount;
 
-  DecoderGetFieldValueAndUpdateBitCount(&Fields->DestinationFlag, StreamPtr);
-  DecoderGetFieldValueAndUpdateBitCount(&Fields->SignExtendFlag, StreamPtr);
-  DecoderGetFieldValueAndUpdateBitCount(&Fields->WideFlag, StreamPtr);
-  DecoderGetFieldValueAndUpdateBitCount(&Fields->Mod, StreamPtr);
-  DecoderGetFieldValueAndUpdateBitCount(&Fields->Reg, StreamPtr);
-  DecoderGetFieldValueAndUpdateBitCount(&Fields->RM, StreamPtr);
-
-  b32 IsDisplacementExist = (Fields->Mod.FieldValue == 0x1) ||
-    (Fields->Mod.FieldValue == 0x2)                         ||
-    //@TODO(Emilio): See if this works for every case involving no mod fields??
-    ((Fields->Mod.StateFlags == FIELD_DOES_NOT_EXIST) && (Fields->Data.StateFlags == FIELD_DOES_NOT_EXIST)) ||
-    (Fields->Mod.FieldValue == 0x0 && Fields->RM.FieldValue == RM_16BIT_IMM_CASE);
-  if(IsDisplacementExist)
+  if((Fields->OpCodeStats.StateFlags & OPCODE_HAS_ZERO_FIELDS) == OPCODE_HAS_ZERO_FIELDS)
   {
-    Fields->Displacement.StateFlags |= FIELD_EXISTS;
-    Fields->Displacement.FieldValue = (s32)((s8)*StreamPtr->Pointer);
     StreamPtr->Pointer++;
+    StreamPtr->BitCount = 0;
+  }
+  else
+  {
+    DecoderGetFieldValueAndUpdateBitCount(&Fields->DestinationFlag, StreamPtr);
+    DecoderGetFieldValueAndUpdateBitCount(&Fields->SignExtendFlag, StreamPtr);
+    DecoderGetFieldValueAndUpdateBitCount(&Fields->WideFlag, StreamPtr);
+    DecoderGetFieldValueAndUpdateBitCount(&Fields->Mod, StreamPtr);
+    DecoderGetFieldValueAndUpdateBitCount(&Fields->Reg, StreamPtr);
+    DecoderGetFieldValueAndUpdateBitCount(&Fields->RM, StreamPtr);
 
-    if((Fields->Mod.FieldValue == 0x2)                      ||
-      (Fields->Mod.StateFlags == FIELD_DOES_NOT_EXIST)      ||
-      (Fields->Mod.FieldValue == 0x0 && Fields->RM.FieldValue == RM_16BIT_IMM_CASE))
+    b32 IsDisplacementExist = (Fields->Mod.FieldValue == 0x1) ||
+      (Fields->Mod.FieldValue == 0x2)                         ||
+      //@TODO(Emilio): See if this works for every case involving no mod fields??
+      ((Fields->Mod.StateFlags == FIELD_DOES_NOT_EXIST) && (Fields->Data.StateFlags == FIELD_DOES_NOT_EXIST)) ||
+      (Fields->Mod.FieldValue == 0x0 && Fields->RM.FieldValue == RM_16BIT_IMM_CASE);
+    if(IsDisplacementExist)
     {
-      s32 OriginalValue = (Fields->Displacement.FieldValue & 0xFF);
-      Fields->Displacement.FieldValue &= 0xFF;
-      Fields->Displacement.FieldValue |= (*StreamPtr->Pointer << 8);
+      Fields->Displacement.StateFlags |= FIELD_EXISTS;
+      Fields->Displacement.FieldValue = (s32)((s8)*StreamPtr->Pointer);
       StreamPtr->Pointer++;
+
+      if((Fields->Mod.FieldValue == 0x2)                      ||
+        (Fields->Mod.StateFlags == FIELD_DOES_NOT_EXIST)      ||
+        (Fields->Mod.FieldValue == 0x0 && Fields->RM.FieldValue == RM_16BIT_IMM_CASE))
+      {
+        s32 OriginalValue = (Fields->Displacement.FieldValue & 0xFF);
+        Fields->Displacement.FieldValue &= 0xFF;
+        Fields->Displacement.FieldValue |= (*StreamPtr->Pointer << 8);
+        StreamPtr->Pointer++;
+      }
     }
   }
 

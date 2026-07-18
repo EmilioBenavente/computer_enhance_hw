@@ -13,6 +13,8 @@
 typedef plex
 {
   char* OpCodeString;
+  u32 StateFlags;
+
   u32 OpCode;
   u32 Mask;
   u32 Shift;
@@ -34,8 +36,8 @@ typedef plex
   decoder_opcode_stats OpCodeStats;
 
   decoder_field DestinationFlag;
-  decoder_field WideFlag;
   decoder_field SignExtendFlag;
+  decoder_field WideFlag;
 
   decoder_field Mod;
   decoder_field Reg;
@@ -74,23 +76,76 @@ char *RMTable[RM_TABLE_8086_SIZE] =
 
 decoder_opcode OpCodes8086Table[OP_CODE_TABLE_8086_SIZE] =
 {
+  //@NOTE(Emilio): MOV instructions
   OP_MOV_RM_RM,
   OP_MOV_IMM_RM,
   OP_MOV_IMM_REG,
   OP_MOV_MEM_ACC,
   OP_MOV_ACC_MEM,
 
+  //@NOTE(Emilio): ADD instructions
   OP_ADD_RM_RM,
   OP_ADD_IMM_RM,
   OP_ADD_IMM_ACC,
 
+  //@NOTE(Emilio): SUB instructions
   OP_SUB_RM_RM,
   OP_SUB_IMM_RM,
   OP_SUB_IMM_ACC,
 
+  //@NOTE(Emilio): CMP instructions
   OP_CMP_RM_RM,
   OP_CMP_IMM_RM,
-  OP_CMP_IMM_ACC
+  OP_CMP_IMM_ACC,
+
+#if 0
+  //@NOTE(Emilio): RET instructions
+  OP_RET,
+  OP_RET_IMM_SP,
+  OP_RET_INTERSEG,
+  OP_RET_INTERSEG_SP,
+
+  //@NOTE(Emilio): JMP instructions
+  OP_JE_JZ,
+  OP_JL_JNGE,
+  OP_JLE_JNG,
+  OP_JB_JNAE,
+  OP_JBE_JNA,
+  OP_JP_JPE,
+  OP_JO,
+  OP_JS,
+  OP_JNE_JNZ,
+  OP_JNL_JGE,
+  OP_JNLE_JG,
+  OP_JNB_JAE,
+  OP_JNBE_JA,
+  OP_JNP_JPO,
+  OP_JNO,
+  OP_JNS,
+  OP_LOOP,
+  OP_LOOPZ_LOOPE,
+  OP_LOOPNZ_LOOPNE,
+  OP_JCXZ,
+
+  //@NOTE(Emilio): INT Instructions
+  OP_INT,
+  OP_INT_3,
+  OP_INTO,
+  OP_IRET,
+
+  //@NOTE(Emilio): Processor Control Instructions
+  OP_CLC,
+  OP_CMC,
+  OP_STC,
+  OP_CLD,
+  OP_STD,
+  OP_CLI,
+  OP_STI,
+  OP_HLT,
+  OP_WAIT,
+  OP_LOCK
+#endif
+
 };
 
 #endif /* _8086_DECODER_H_ */
