@@ -72,7 +72,7 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
     Fields->Data.FieldValue = (s32)((s8)*StreamPtr->Pointer);
     StreamPtr->Pointer++;
 
-    if(Fields->WideFlag.FieldValue || Fields->IsForcedWide)
+    if(Fields->WideFlag.FieldValue)
     {
       if((Fields->SignExtendFlag.StateFlags == FIELD_DOES_NOT_EXIST)      ||
         ((Fields->SignExtendFlag.StateFlags & FIELD_EXISTS == FIELD_EXISTS) && (Fields->SignExtendFlag.FieldValue == 0)))
@@ -106,13 +106,23 @@ DecoderGetOpCodeFromStream(u8 *InputStream)
 
     if(TestOpCodeResult)
     {
+      char OpCodeExtended = *(InputStream+1);
+      OpCodeExtended      = (OpCodeExtended >> 3) & 0x7;
+
       if((TableOpCodePtr->Reg.StateFlags & FIELD_IS_OPCODE_EXTENDED))
       {
-        char OpCodeExtended = *(InputStream+1);
-        OpCodeExtended      = (OpCodeExtended >> 3) & 0x7;
-
         TestOpCodeResult =
           (OpCodeExtended == TableOpCodePtr->Reg.FieldValue);
+      }
+      else if((TableOpCodePtr->RM.StateFlags & FIELD_IS_OPCODE_EXTENDED))
+      {
+        ECB_ASSERT(TableOpCodePtr->SegmentReg.StateFlags & FIELD_EXISTS);
+
+        OpCodeExtended = *InputStream;
+        OpCodeExtended = (OpCodeExtended & 0x7);
+
+        TestOpCodeResult =
+          (OpCodeExtended == TableOpCodePtr->RM.FieldValue);
       }
     }
 
@@ -146,7 +156,7 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
   char* PrintPtr = PrintBuffer;
   PrintPtr += sprintf(PrintPtr, "%s ", Fields->OpCodeStats.OpCodeString);
 
-  b32 IsWide = Fields->WideFlag.FieldValue || Fields->IsForcedWide;
+  b32 IsWide = Fields->WideFlag.FieldValue;
  
   char* RegString = 0;
   if((Fields->Reg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
@@ -347,6 +357,7 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream, u32 StreamSize)
 
   char InstructionByte = 0;
   u32 InstructionCount = 0;
+  u32 DEBUGCount = 0;
   while(StreamSize)
   {
     decoder_opcode OpCodeFields = DecoderReadSingleInstruction(InputStream, &InstructionCount);
@@ -361,6 +372,7 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream, u32 StreamSize)
     {
       return;
     }
+    DEBUGCount++;
   }
 }
 
