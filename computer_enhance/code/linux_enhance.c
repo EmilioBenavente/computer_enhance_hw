@@ -9,7 +9,7 @@ main(s32 ArgCount, char **Args)
 
   char *InitialContent = "bits 16\n";
   ecb_string WriteStream =
-    LinuxCreateString(InitialContent, ECB_GetStringLength(InitialContent), 4*1024);
+    LinuxCreateString(InitialContent, ECB_GetStringLength(InitialContent), 10*1024);
 
   DecoderReadByteStream(&WriteStream, InputStream.Content, InputStream.ContentSize);
 

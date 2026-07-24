@@ -64,6 +64,11 @@ char *RegTable[REG_TABLE_8086_SIZE] =
   "sp", "bp", "si", "di"
 };
 
+char *SegTable[SEG_TABLE_8086_SIZE] =
+{
+  "es", "cs", "ss", "ds"
+};
+
 
 #define RM_16BIT_IMM_CASE 0x6
 char *RMTable[RM_TABLE_8086_SIZE] =

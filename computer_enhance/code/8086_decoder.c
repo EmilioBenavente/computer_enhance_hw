@@ -42,13 +42,13 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
     DecoderGetFieldValueAndUpdateBitCount(&Fields->WideFlag, StreamPtr);
     DecoderGetFieldValueAndUpdateBitCount(&Fields->Mod, StreamPtr);
     DecoderGetFieldValueAndUpdateBitCount(&Fields->Reg, StreamPtr);
+    DecoderGetFieldValueAndUpdateBitCount(&Fields->SegmentReg, StreamPtr);
     DecoderGetFieldValueAndUpdateBitCount(&Fields->RM, StreamPtr);
 
-    b32 IsDisplacementExist = (Fields->Mod.FieldValue == 0x1) ||
-      (Fields->Mod.FieldValue == 0x2)                         ||
-      //@TODO(Emilio): See if this works for every case involving no mod fields??
-      ((Fields->Mod.StateFlags == FIELD_DOES_NOT_EXIST) && (Fields->Data.StateFlags == FIELD_DOES_NOT_EXIST)) ||
-      (Fields->Mod.FieldValue == 0x0 && Fields->RM.FieldValue == RM_16BIT_IMM_CASE);
+    b32 IsDisplacementExist = (((Fields->RM.StateFlags & FIELD_EXISTS) == FIELD_EXISTS) &&
+                               (Fields->Mod.FieldValue == 1 || Fields->Mod.FieldValue == 2 ||
+                                (Fields->Mod.FieldValue == 0 && Fields->RM.FieldValue == RM_16BIT_IMM_CASE)) ||
+                                ((Fields->Displacement.StateFlags & FIELD_EXISTS) == FIELD_EXISTS));
     if(IsDisplacementExist)
     {
       Fields->Displacement.StateFlags |= FIELD_EXISTS;
@@ -135,6 +135,7 @@ DecoderGetOpCodeFromStream(u8 *InputStream)
       Result.Mod              = TableOpCodePtr->Mod;
       Result.Reg              = TableOpCodePtr->Reg;
       Result.RM               = TableOpCodePtr->RM;
+      Result.SegmentReg       = TableOpCodePtr->SegmentReg;
       Result.Displacement     = TableOpCodePtr->Displacement;
       Result.Data             = TableOpCodePtr->Data;
       break;
@@ -164,6 +165,12 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
     u32 RegIndex = Fields->Reg.FieldValue + (8*IsWide);
     RegString = RegTable[RegIndex];
   }
+  else if((Fields->SegmentReg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
+  {
+    u32 SegIndex = Fields->SegmentReg.FieldValue;
+    RegString = SegTable[SegIndex];
+  }
+
 
   char RMString[64] = {0};
   if(((Fields->RM.StateFlags & FIELD_EXISTS) == FIELD_EXISTS) ||
@@ -365,10 +372,11 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream, u32 StreamSize)
 
   char InstructionByte = 0;
   u32 InstructionCount = 0;
+  //@NOTE(Emilio): Current version of asm instruction being tested -> XCHG Reg to Reg
   u32 DEBUGCount = 0;
   while(StreamSize)
   {
-    if(DEBUGCount == 30)
+    if(DEBUGCount == 40)
     {
       printf("hello world \n");
     }
