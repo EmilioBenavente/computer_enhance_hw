@@ -282,6 +282,14 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
       }
     }
   }
+  else if((Fields->Reg.StateFlags & FIELD_IS_OPCODE_EXTENDED) == FIELD_IS_OPCODE_EXTENDED)
+  {
+    PrintPtr += sprintf(PrintPtr, "word %s", RMString);
+  }
+  else if(Fields->OpCodeStats.OpCode <= 0xB)
+  {
+    PrintPtr += sprintf(PrintPtr, "%s", RegString);
+  }
   else
   {
   //@NOTE(Emilio): The basic case allows us to switch REG and RM field
@@ -360,6 +368,10 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream, u32 StreamSize)
   u32 DEBUGCount = 0;
   while(StreamSize)
   {
+    if(DEBUGCount == 30)
+    {
+      printf("hello world \n");
+    }
     decoder_opcode OpCodeFields = DecoderReadSingleInstruction(InputStream, &InstructionCount);
     if(OpCodeFields.OpCodeStats.OpCodeString)
     {
