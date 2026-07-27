@@ -29,6 +29,13 @@ file_scope void
 DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *StreamPtr)
 {
   StreamPtr->BitCount += Fields->OpCodeStats.BitCount;
+  //@TODO @INCOMPLETE(Emilio): Should we place this at another spot in the code,
+  //    Opcode is greater than 8 bits.
+  if(StreamPtr->BitCount > 7)
+  {
+    StreamPtr->Pointer++;
+    StreamPtr->BitCount = 0;
+  }
 
   if((Fields->OpCodeStats.StateFlags & OPCODE_HAS_ZERO_FIELDS) == OPCODE_HAS_ZERO_FIELDS)
   {
@@ -72,7 +79,8 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
     Fields->Data.FieldValue = (s32)((s8)*StreamPtr->Pointer);
     StreamPtr->Pointer++;
 
-    if(Fields->WideFlag.FieldValue)
+    if(Fields->WideFlag.FieldValue &&
+      ((Fields->Data.StateFlags & FIELD_IS_PORT_DATA) != FIELD_IS_PORT_DATA))
     {
       if((Fields->SignExtendFlag.StateFlags == FIELD_DOES_NOT_EXIST)      ||
         ((Fields->SignExtendFlag.StateFlags & FIELD_EXISTS == FIELD_EXISTS) && (Fields->SignExtendFlag.FieldValue == 0)))
@@ -107,22 +115,35 @@ DecoderGetOpCodeFromStream(u8 *InputStream)
     if(TestOpCodeResult)
     {
       char OpCodeExtended = *(InputStream+1);
-      OpCodeExtended      = (OpCodeExtended >> 3) & 0x7;
 
       if((TableOpCodePtr->Reg.StateFlags & FIELD_IS_OPCODE_EXTENDED))
       {
+        s32 ShiftValue = 3;
+
+        decoder_field TableOpField = TableOpCodePtr->Reg;
+        if(TableOpField.FieldBitCount == 8)
+        {
+          ShiftValue = 0;
+        }
+
+        OpCodeExtended = (OpCodeExtended >> ShiftValue);
+        OpCodeExtended = OpCodeExtended & TableOpField.FieldMask;
+
         TestOpCodeResult =
-          (OpCodeExtended == TableOpCodePtr->Reg.FieldValue);
+          (OpCodeExtended == TableOpField.FieldValue);
       }
       else if((TableOpCodePtr->RM.StateFlags & FIELD_IS_OPCODE_EXTENDED))
       {
         ECB_ASSERT(TableOpCodePtr->SegmentReg.StateFlags & FIELD_EXISTS);
 
         OpCodeExtended = *InputStream;
-        OpCodeExtended = (OpCodeExtended & 0x7);
+
+        decoder_field TableOpField = TableOpCodePtr->RM;
+
+        OpCodeExtended = OpCodeExtended & TableOpField.FieldMask;
 
         TestOpCodeResult =
-          (OpCodeExtended == TableOpCodePtr->RM.FieldValue);
+          (OpCodeExtended == TableOpField.FieldValue);
       }
     }
 
@@ -158,158 +179,207 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
   PrintPtr += sprintf(PrintPtr, "%s ", Fields->OpCodeStats.OpCodeString);
 
   b32 IsWide = Fields->WideFlag.FieldValue;
- 
-  char* RegString = 0;
-  if((Fields->Reg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
-  {
-    u32 RegIndex = Fields->Reg.FieldValue + (8*IsWide);
-    RegString = RegTable[RegIndex];
-  }
-  else if((Fields->SegmentReg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
-  {
-    u32 SegIndex = Fields->SegmentReg.FieldValue;
-    RegString = SegTable[SegIndex];
-  }
 
-
-  char RMString[64] = {0};
-  if(((Fields->RM.StateFlags & FIELD_EXISTS) == FIELD_EXISTS) ||
-     ((Fields->Displacement.StateFlags & FIELD_EXISTS) == FIELD_EXISTS))
+  if((Fields->OpCodeStats.StateFlags & OPCODE_ONLY_PRINT_OP) != OPCODE_ONLY_PRINT_OP)
   {
-    u32 RMIndex = Fields->RM.FieldValue + (8*Fields->Mod.FieldValue);
-    if(Fields->Mod.StateFlags == FIELD_DOES_NOT_EXIST)
+    b32 DEBUGA = Fields->OpCodeStats.StateFlags & OPCODE_ONLY_PRINT_OP;
+    b32 DEBUGB = OPCODE_ONLY_PRINT_OP;
+    b32 DEBUGC = DEBUGA != DEBUGB;
+    b32 DEBUGD = DEBUGA != OPCODE_ONLY_PRINT_OP;
+
+    char* RegString = 0;
+    if((Fields->Reg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
     {
-      s16 DisplacementValue = (s16)Fields->Displacement.FieldValue;
-      if(DisplacementValue > 0)
-      {
-        sprintf(RMString, "[%d]", DisplacementValue);
-      }
-      else
-      {
-        sprintf(RMString, "[-%d]", (DisplacementValue * -1));
-      }
+      u32 RegIndex = Fields->Reg.FieldValue + (8*IsWide);
+      RegString = RegTable[RegIndex];
     }
-    else if(Fields->Mod.FieldValue == 0x3)
+    else if((Fields->SegmentReg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
     {
-      RMIndex += (8*IsWide);
-      sprintf(RMString, "%s", RMTable[RMIndex]);
+      u32 SegIndex = Fields->SegmentReg.FieldValue;
+      RegString = SegTable[SegIndex];
     }
-    else
-    {
-      sprintf(RMString, "[%s]", RMTable[RMIndex]);
 
-      if((Fields->Displacement.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
+
+    char RMString[64] = {0};
+    if(((Fields->RM.StateFlags & FIELD_EXISTS) == FIELD_EXISTS) ||
+       ((Fields->Displacement.StateFlags & FIELD_EXISTS) == FIELD_EXISTS))
+    {
+      u32 RMIndex = Fields->RM.FieldValue + (8*Fields->Mod.FieldValue);
+      if(Fields->Mod.StateFlags == FIELD_DOES_NOT_EXIST)
       {
         s16 DisplacementValue = (s16)Fields->Displacement.FieldValue;
-        if((Fields->Mod.FieldValue == 0x0) &&
-          (Fields->RM.FieldValue == RM_16BIT_IMM_CASE))
+        if(DisplacementValue > 0)
         {
-          if(DisplacementValue > 0)
-          {
-            sprintf(RMString, "[%d]", DisplacementValue);
-          }
-          else
-          {
-            sprintf(RMString, "[-%d]", (DisplacementValue * -1));
-          }
+          sprintf(RMString, "[%d]", DisplacementValue);
         }
         else
         {
-          if(DisplacementValue == 0)
+          sprintf(RMString, "[-%d]", (DisplacementValue * -1));
+        }
+      }
+      else if(Fields->Mod.FieldValue == 0x3)
+      {
+        RMIndex += (8*IsWide);
+        sprintf(RMString, "%s", RMTable[RMIndex]);
+      }
+      else
+      {
+        sprintf(RMString, "[%s]", RMTable[RMIndex]);
+
+        if((Fields->Displacement.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
+        {
+          s16 DisplacementValue = (s16)Fields->Displacement.FieldValue;
+          if((Fields->Mod.FieldValue == 0x0) &&
+            (Fields->RM.FieldValue == RM_16BIT_IMM_CASE))
           {
-            sprintf(RMString, "[%s]", RMTable[RMIndex]);
-          }
-          else if(DisplacementValue > 0)
-          {
-            sprintf(RMString, "[%s + %d]", RMTable[RMIndex], DisplacementValue);
+            if(DisplacementValue > 0)
+            {
+              sprintf(RMString, "[%d]", DisplacementValue);
+            }
+            else
+            {
+              sprintf(RMString, "[-%d]", (DisplacementValue * -1));
+            }
           }
           else
           {
-            sprintf(RMString, "[%s - %d]", RMTable[RMIndex], (DisplacementValue * -1));
+            if(DisplacementValue == 0)
+            {
+              sprintf(RMString, "[%s]", RMTable[RMIndex]);
+            }
+            else if(DisplacementValue > 0)
+            {
+              sprintf(RMString, "[%s + %d]", RMTable[RMIndex], DisplacementValue);
+            }
+            else
+            {
+              sprintf(RMString, "[%s - %d]", RMTable[RMIndex], (DisplacementValue * -1));
+            }
           }
         }
       }
     }
-  }
 
 
-  if((Fields->Data.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
-  {
-    s16 DataValue = (s16)Fields->Data.FieldValue;
-    if((Fields->Data.StateFlags & FIELD_IS_JMP_DATA) == FIELD_IS_JMP_DATA)
+    if((Fields->Data.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
     {
-      DataValue += 2;
-      if(DataValue >= 0)
+      s16 DataValue = (s16)Fields->Data.FieldValue;
+      if((Fields->Data.StateFlags & FIELD_IS_JMP_DATA) == FIELD_IS_JMP_DATA)
       {
-        PrintPtr += sprintf(PrintPtr, "$+%d", DataValue);
+        DataValue += 2;
+        if(DataValue >= 0)
+        {
+          PrintPtr += sprintf(PrintPtr, "$+%d", DataValue);
+        }
+        else
+        {
+          PrintPtr += sprintf(PrintPtr, "$-%d", (DataValue * -1));
+        }
+      }
+      else if((Fields->Data.StateFlags & FIELD_IS_PORT_DATA) == FIELD_IS_PORT_DATA)
+      {
+        //@TODO @NOTE(Emilio): At this point we probably can refactor this whole section
+        //  by overwritting the RegString and RMString
+        DataValue = (u8)Fields->Data.FieldValue;
+        if(Fields->DestinationFlag.FieldValue)
+        {
+          PrintPtr += sprintf(PrintPtr, "%d, %s", DataValue, RegString);
+        }
+        else
+        {
+          PrintPtr += sprintf(PrintPtr, "%s, %d", RegString, DataValue);
+        }
+      }
+      else if((Fields->Reg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
+      {
+        if(DataValue > 0)
+        {
+          PrintPtr += sprintf(PrintPtr, "%s, %d", RegString, DataValue);
+        }
+        else
+        {
+          PrintPtr += sprintf(PrintPtr, "%s, -%d", RegString, (DataValue * -1));
+        }
+      }
+      else if((Fields->SignExtendFlag.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
+      {
+        if((Fields->Mod.FieldValue != 0x3))
+        {
+          char* ImplicitSize = IsWide ? "word" :"byte";
+          PrintPtr += sprintf(PrintPtr, "%s ", ImplicitSize);
+        }
+
+        if(DataValue > 0)
+        {
+          PrintPtr += sprintf(PrintPtr, "%s, %d", RMString, DataValue);
+        }
+        else
+        {
+          PrintPtr += sprintf(PrintPtr, "%s, -%d", RMString, (DataValue * -1));
+        }
       }
       else
-      {
-        PrintPtr += sprintf(PrintPtr, "$-%d", (DataValue * -1));
-      }
-    }
-    else if((Fields->Reg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
-    {
-      if(DataValue > 0)
-      {
-        PrintPtr += sprintf(PrintPtr, "%s, %d", RegString, DataValue);
-      }
-      else
-      {
-        PrintPtr += sprintf(PrintPtr, "%s, -%d", RegString, (DataValue * -1));
-      }
-    }
-    else if((Fields->SignExtendFlag.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
-    {
-      if((Fields->Mod.FieldValue != 0x3))
       {
         char* ImplicitSize = IsWide ? "word" :"byte";
-        PrintPtr += sprintf(PrintPtr, "%s ", ImplicitSize);
+        if(DataValue > 0)
+        {
+          PrintPtr += sprintf(PrintPtr, "%s, %s %d", RMString, ImplicitSize, DataValue);
+        }
+        else
+        {
+          PrintPtr += sprintf(PrintPtr, "%s, %s -%d", RMString, ImplicitSize, (DataValue * -1));
+        }
       }
-
-      if(DataValue > 0)
+    }
+    //@HARDCODE(Emilio): PUSH/POP need "word", find better solution later
+    else if((Fields->OpCodeStats.OpCode == 0xFF) ||
+            (Fields->OpCodeStats.OpCode == 0x8F))
+    {
+      PrintPtr += sprintf(PrintPtr, "word %s", RMString);
+    }
+    //@HARDCODE(Emilio): These seem to be the only instructions that don't obey the table rules.
+    else if((Fields->OpCodeStats.OpCode == 0x76) ||
+            (Fields->OpCodeStats.OpCode == 0x77))
+    {
+      if(Fields->DestinationFlag.FieldValue)
       {
-        PrintPtr += sprintf(PrintPtr, "%s, %d", RMString, DataValue);
+        PrintPtr += sprintf(PrintPtr, "dx, %s", RegString);
       }
       else
       {
-        PrintPtr += sprintf(PrintPtr, "%s, -%d", RMString, (DataValue * -1));
+        PrintPtr += sprintf(PrintPtr, "%s, dx", RegString);
+      }
+    }
+    else if((Fields->RM.StateFlags & FIELD_EXISTS) == FIELD_DOES_NOT_EXIST)
+    {
+      PrintPtr += sprintf(PrintPtr, "%s", RegString);
+    }
+    else if((Fields->Reg.StateFlags & FIELD_EXISTS) == FIELD_DOES_NOT_EXIST)
+    {
+      if(Fields->Mod.FieldValue == 0x3)
+      {
+        PrintPtr += sprintf(PrintPtr, "%s", RMString);
+      }
+      else
+      {
+        char* ImplicitSize = IsWide ? "word" :"byte";
+        PrintPtr += sprintf(PrintPtr, "%s %s", ImplicitSize, RMString);
       }
     }
     else
     {
-      char* ImplicitSize = IsWide ? "word" :"byte";
-      if(DataValue > 0)
+    //@NOTE(Emilio): The basic case allows us to switch REG and RM field
+    //  based on DestinationFlag, but when both registers aren't present
+    //  we need to force one of the registers to act like the other
+    //  making this scheme useless.
+      if(Fields->DestinationFlag.FieldValue)
       {
-        PrintPtr += sprintf(PrintPtr, "%s, %s %d", RMString, ImplicitSize, DataValue);
+        PrintPtr += sprintf(PrintPtr, "%s, %s", RegString, RMString);
       }
       else
       {
-        PrintPtr += sprintf(PrintPtr, "%s, %s -%d", RMString, ImplicitSize, (DataValue * -1));
+        PrintPtr += sprintf(PrintPtr, "%s, %s", RMString, RegString);
       }
-    }
-  }
-  else if((Fields->Reg.StateFlags & FIELD_IS_OPCODE_EXTENDED) == FIELD_IS_OPCODE_EXTENDED)
-  {
-    PrintPtr += sprintf(PrintPtr, "word %s", RMString);
-  }
-  else if(Fields->OpCodeStats.OpCode <= 0xB)
-  {
-    PrintPtr += sprintf(PrintPtr, "%s", RegString);
-  }
-  else
-  {
-  //@NOTE(Emilio): The basic case allows us to switch REG and RM field
-  //  based on DestinationFlag, but when both registers aren't present
-  //  we need to force one of the registers to act like the other
-  //  making this scheme useless.
-    if(Fields->DestinationFlag.FieldValue)
-    {
-      PrintPtr += sprintf(PrintPtr, "%s, %s", RegString, RMString);
-    }
-    else
-    {
-      PrintPtr += sprintf(PrintPtr, "%s, %s", RMString, RegString);
     }
   }
 
@@ -372,12 +442,13 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream, u32 StreamSize)
 
   char InstructionByte = 0;
   u32 InstructionCount = 0;
-  //@NOTE(Emilio): Current version of asm instruction being tested -> XCHG Reg to Reg
+  //@NOTE(Emilio): We are currently debugging logical shift instructions
   u32 DEBUGCount = 0;
-  while(StreamSize)
+  while(StreamSize && DEBUGCount < 400)
   {
-    if(DEBUGCount == 40)
+    if(DEBUGCount == 186)
     {
+      char* DEBUGString = (WriteBuffer->Content - 30);
       printf("hello world \n");
     }
     decoder_opcode OpCodeFields = DecoderReadSingleInstruction(InputStream, &InstructionCount);
