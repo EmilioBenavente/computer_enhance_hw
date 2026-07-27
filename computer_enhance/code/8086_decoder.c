@@ -29,15 +29,14 @@ file_scope void
 DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *StreamPtr)
 {
   StreamPtr->BitCount += Fields->OpCodeStats.BitCount;
-  //@TODO @INCOMPLETE(Emilio): Should we place this at another spot in the code,
-  //    Opcode is greater than 8 bits.
-  if(StreamPtr->BitCount > 7)
+
+
+  if((Fields->OpCodeStats.StateFlags & OPCODE_IS_16BIT) == OPCODE_IS_16BIT)
   {
-    StreamPtr->Pointer++;
+    StreamPtr->Pointer += 2;
     StreamPtr->BitCount = 0;
   }
-
-  if((Fields->OpCodeStats.StateFlags & OPCODE_HAS_ZERO_FIELDS) == OPCODE_HAS_ZERO_FIELDS)
+  else if((Fields->OpCodeStats.StateFlags & OPCODE_HAS_ZERO_FIELDS) == OPCODE_HAS_ZERO_FIELDS)
   {
     StreamPtr->Pointer++;
     StreamPtr->BitCount = 0;
@@ -46,6 +45,8 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
   {
     DecoderGetFieldValueAndUpdateBitCount(&Fields->DestinationFlag, StreamPtr);
     DecoderGetFieldValueAndUpdateBitCount(&Fields->SignExtendFlag, StreamPtr);
+    DecoderGetFieldValueAndUpdateBitCount(&Fields->RotateCLFlag, StreamPtr);
+    DecoderGetFieldValueAndUpdateBitCount(&Fields->ZeroFlag, StreamPtr);
     DecoderGetFieldValueAndUpdateBitCount(&Fields->WideFlag, StreamPtr);
     DecoderGetFieldValueAndUpdateBitCount(&Fields->Mod, StreamPtr);
     DecoderGetFieldValueAndUpdateBitCount(&Fields->Reg, StreamPtr);
@@ -109,6 +110,11 @@ DecoderGetOpCodeFromStream(u8 *InputStream)
 
     decoder_opcode_stats TableOpCode = TableOpCodePtr->OpCodeStats;
     s32 TestOpCodeValue = (TestOpCode >> TableOpCode.Shift) & TableOpCode.Mask;
+    if((TableOpCode.StateFlags & OPCODE_IS_16BIT) == OPCODE_IS_16BIT)
+    {
+      TestOpCodeValue = ((*InputStream) | ((*(InputStream+1)) << 8));
+    }
+
     b32 TestOpCodeResult =
       TestOpCodeValue == TableOpCode.OpCode;
 
@@ -152,6 +158,8 @@ DecoderGetOpCodeFromStream(u8 *InputStream)
       Result.OpCodeStats      = TableOpCodePtr->OpCodeStats;
       Result.DestinationFlag  = TableOpCodePtr->DestinationFlag;
       Result.SignExtendFlag   = TableOpCodePtr->SignExtendFlag;
+      Result.RotateCLFlag     = TableOpCodePtr->RotateCLFlag;
+      Result.ZeroFlag         = TableOpCodePtr->ZeroFlag;
       Result.WideFlag         = TableOpCodePtr->WideFlag;
       Result.Mod              = TableOpCodePtr->Mod;
       Result.Reg              = TableOpCodePtr->Reg;
@@ -260,7 +268,6 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
       }
     }
 
-
     if((Fields->Data.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
     {
       s16 DataValue = (s16)Fields->Data.FieldValue;
@@ -328,6 +335,33 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
         else
         {
           PrintPtr += sprintf(PrintPtr, "%s, %s -%d", RMString, ImplicitSize, (DataValue * -1));
+        }
+      }
+    }
+    //@HARDCODE(Emilio): PUSH/POP need "word", find better solution later
+    else if((Fields->RotateCLFlag.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
+    {
+      if(Fields->Mod.FieldValue == 0x3)
+      {
+        if(Fields->RotateCLFlag.FieldValue)
+        {
+          PrintPtr += sprintf(PrintPtr, "%s, cl", RMString);
+        }
+        else
+        {
+          PrintPtr += sprintf(PrintPtr, "%s, 1", RMString);
+        }
+      }
+      else
+      {
+        char* ImplicitSize = IsWide ? "word" :"byte";
+        if(Fields->RotateCLFlag.FieldValue)
+        {
+          PrintPtr += sprintf(PrintPtr, "%s %s, cl", ImplicitSize, RMString);
+        }
+        else
+        {
+          PrintPtr += sprintf(PrintPtr, "%s %s, 1", ImplicitSize, RMString);
         }
       }
     }
@@ -444,11 +478,11 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream, u32 StreamSize)
   u32 InstructionCount = 0;
   //@NOTE(Emilio): We are currently debugging logical shift instructions
   u32 DEBUGCount = 0;
-  while(StreamSize && DEBUGCount < 400)
+  while(StreamSize)
   {
-    if(DEBUGCount == 186)
+    if(DEBUGCount == 331)
     {
-      char* DEBUGString = (WriteBuffer->Content - 30);
+      char* DEBUGString = (WriteBuffer->Content - 50);
       printf("hello world \n");
     }
     decoder_opcode OpCodeFields = DecoderReadSingleInstruction(InputStream, &InstructionCount);
