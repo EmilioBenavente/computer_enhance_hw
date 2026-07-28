@@ -200,7 +200,12 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
 
   b32 IsWide = Fields->WideFlag.FieldValue;
 
-  if((Fields->OpCodeStats.StateFlags & OPCODE_ONLY_PRINT_OP) != OPCODE_ONLY_PRINT_OP)
+  if(Fields->OpCodeStats.OpCode == REP_INSTRUCTION)
+  {
+    char* ImplicitSize = Fields->SecondOpCode->WideFlag.FieldValue ? "w" :"b";
+    PrintPtr += sprintf(PrintPtr, " %s%s", Fields->SecondOpCode->OpCodeStats.OpCodeString, ImplicitSize);
+  }
+  else if((Fields->OpCodeStats.StateFlags & OPCODE_ONLY_PRINT_OP) != OPCODE_ONLY_PRINT_OP)
   {
     PrintPtr += sprintf(PrintPtr, " ");
 
@@ -456,8 +461,6 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
     }
   }
 
-
-
   if(WritePtr)
   {
     //@HARDCODE(Emilio): We should make functions for new line and comments
@@ -482,6 +485,9 @@ DecoderPrintSingleInstruction(ecb_string *WriteBuffer, decoder_opcode *Fields)
 
 }
 
+//@NOTE(Emilio): Single instruction, also implying that for now, you must
+//  call this function twice to complete an instruction with two sets of
+//  op code fields like the rep instruction.
 file_scope decoder_opcode
 DecoderReadSingleInstruction(u8 *InputStream, u32 *ReturnNewInstructionOffset)
 {
@@ -525,6 +531,17 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream, u32 StreamSize)
       printf("hello world \n");
     }
     decoder_opcode OpCodeFields = DecoderReadSingleInstruction(InputStream, &InstructionCount);
+    decoder_opcode SecondOpCodeFields = {};
+
+    if(OpCodeFields.OpCodeStats.OpCode == REP_INSTRUCTION)
+    {
+      u32 TempCount = InstructionCount;
+      SecondOpCodeFields = DecoderReadSingleInstruction((InputStream+TempCount), &InstructionCount);
+      OpCodeFields.SecondOpCode = &SecondOpCodeFields;
+      InstructionCount += TempCount;
+    }
+
+
     if(OpCodeFields.OpCodeStats.OpCodeString)
     {
       DecoderPrintSingleInstruction(WriteBuffer, &OpCodeFields);

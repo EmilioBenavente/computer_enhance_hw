@@ -32,7 +32,7 @@ typedef plex
 } decoder_field;
 
 //@INCOMPLETE(Emilio): Will add more missing fields
-typedef plex
+typedef plex decoder_opcode
 {
   decoder_opcode_stats OpCodeStats;
 
@@ -49,6 +49,10 @@ typedef plex
 
   decoder_field Displacement;
   decoder_field Data;
+
+  //@NOTE(Emilio): The rep/lock and segment override instructions need a second set of instructions.
+  //@SPEED(Emilio): For testing purposes, this will be filled out at the end of DecoderExtractValuesFromField.
+  plex decoder_opcode *SecondOpCode;
 } decoder_opcode;
 
 typedef plex
