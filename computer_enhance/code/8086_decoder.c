@@ -77,7 +77,14 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
 
   if((Fields->Data.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
   {
-    Fields->Data.FieldValue = (s32)((s8)*StreamPtr->Pointer);
+    if((Fields->Data.StateFlags & FIELD_IS_UNSIGNED_DATA) == FIELD_IS_UNSIGNED_DATA)
+    {
+      Fields->Data.FieldValue = (u32)((u8)*StreamPtr->Pointer);
+    }
+    else
+    {
+      Fields->Data.FieldValue = (s32)((s8)*StreamPtr->Pointer);
+    }
     StreamPtr->Pointer++;
 
     if(Fields->WideFlag.FieldValue &&
@@ -155,6 +162,11 @@ DecoderGetOpCodeFromStream(u8 *InputStream)
 
     if(TestOpCodeResult)
     {
+      if(TableOpCodePtr->OpCodeStats.OpCode == 0x21)
+      {
+        printf("Hello World\n");
+      }
+
       Result.OpCodeStats      = TableOpCodePtr->OpCodeStats;
       Result.DestinationFlag  = TableOpCodePtr->DestinationFlag;
       Result.SignExtendFlag   = TableOpCodePtr->SignExtendFlag;
@@ -184,16 +196,13 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
 
   char PrintBuffer[TEMP_PRINT_BUFFER_SIZE];
   char* PrintPtr = PrintBuffer;
-  PrintPtr += sprintf(PrintPtr, "%s ", Fields->OpCodeStats.OpCodeString);
+  PrintPtr += sprintf(PrintPtr, "%s", Fields->OpCodeStats.OpCodeString);
 
   b32 IsWide = Fields->WideFlag.FieldValue;
 
   if((Fields->OpCodeStats.StateFlags & OPCODE_ONLY_PRINT_OP) != OPCODE_ONLY_PRINT_OP)
   {
-    b32 DEBUGA = Fields->OpCodeStats.StateFlags & OPCODE_ONLY_PRINT_OP;
-    b32 DEBUGB = OPCODE_ONLY_PRINT_OP;
-    b32 DEBUGC = DEBUGA != DEBUGB;
-    b32 DEBUGD = DEBUGA != OPCODE_ONLY_PRINT_OP;
+    PrintPtr += sprintf(PrintPtr, " ");
 
     char* RegString = 0;
     if((Fields->Reg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
@@ -325,6 +334,35 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
           PrintPtr += sprintf(PrintPtr, "%s, -%d", RMString, (DataValue * -1));
         }
       }
+      else if((Fields->Data.StateFlags & FIELD_IS_LOGIC_DATA) == FIELD_IS_LOGIC_DATA)
+      {
+        char* ImplicitSize = IsWide ? "word" :"byte";
+        if(DataValue > 0)
+        {
+          PrintPtr += sprintf(PrintPtr, "%s %s, %d", ImplicitSize, RMString, DataValue);
+        }
+        else
+        {
+          PrintPtr += sprintf(PrintPtr, "%s %s, -%d", ImplicitSize, RMString, (DataValue * -1));
+        }
+      }
+      else if((Fields->Data.StateFlags & FIELD_IS_UNSIGNED_TEST_DATA) == FIELD_IS_UNSIGNED_TEST_DATA)
+      {
+        if((Fields->Mod.FieldValue != 0x3))
+        {
+          char* ImplicitSize = IsWide ? "word" :"byte";
+          PrintPtr += sprintf(PrintPtr, "%s ", ImplicitSize);
+        }
+
+        if(DataValue > 0)
+        {
+          PrintPtr += sprintf(PrintPtr, "%s, %d", RMString, DataValue);
+        }
+        else
+        {
+          PrintPtr += sprintf(PrintPtr, "%s, -%d", RMString, (DataValue * -1));
+        }
+      }
       else
       {
         char* ImplicitSize = IsWide ? "word" :"byte";
@@ -384,7 +422,8 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
         PrintPtr += sprintf(PrintPtr, "%s, dx", RegString);
       }
     }
-    else if((Fields->RM.StateFlags & FIELD_EXISTS) == FIELD_DOES_NOT_EXIST)
+    else if(((Fields->RM.StateFlags & FIELD_EXISTS) == FIELD_DOES_NOT_EXIST) &&
+            ((Fields->Displacement.StateFlags & FIELD_IS_IMMPLIED) != FIELD_IS_IMMPLIED))
     {
       PrintPtr += sprintf(PrintPtr, "%s", RegString);
     }
@@ -480,7 +519,7 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream, u32 StreamSize)
   u32 DEBUGCount = 0;
   while(StreamSize)
   {
-    if(DEBUGCount == 331)
+    if(DEBUGCount == 235)
     {
       char* DEBUGString = (WriteBuffer->Content - 50);
       printf("hello world \n");
