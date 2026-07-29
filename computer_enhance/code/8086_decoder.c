@@ -191,13 +191,20 @@ DecoderGetOpCodeFromStream(u8 *InputStream)
 
 //@NOTE(Emilio): Returns the number bytes printed.
 file_scope u32
-DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
+DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields, b32 ShouldAddNewLine)
 {
   u32 Result = 0;
 
   char PrintBuffer[TEMP_PRINT_BUFFER_SIZE];
   char* PrintPtr = PrintBuffer;
-  PrintPtr += sprintf(PrintPtr, "%s", Fields->OpCodeStats.OpCodeString);
+
+  b32 IsSegmentOverride = (Fields->OpCodeStats.OpCode == SEG_OVERRIDE_INSTRUCTION_01) &&
+    (Fields->RM.FieldValue == SEG_OVERRIDE_INSTRUCTION_02);
+
+  if(!IsSegmentOverride)
+  {
+    PrintPtr += sprintf(PrintPtr, "%s", Fields->OpCodeStats.OpCodeString);
+  }
 
   b32 IsWide = Fields->WideFlag.FieldValue;
   b32 IsCallOp = ECB_IsStringEqual(Fields->OpCodeStats.OpCodeString, "call");
@@ -209,7 +216,14 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
   }
   else if(Fields->OpCodeStats.OpCode == 0xF0)
   {
-    PrintPtr += sprintf(PrintPtr, " %s", Fields->SecondOpCode->OpCodeStats.OpCodeString);
+    PrintPtr += sprintf(PrintPtr, " ");
+    PrintPtr += DecoderPrintInstructionFromFields(PrintPtr, Fields->SecondOpCode, 0);
+  }
+  else if(IsSegmentOverride)
+  {
+    Fields->SecondOpCode->SegmentReg.FieldValue = Fields->SegmentReg.FieldValue;
+    Fields->SecondOpCode->IsSegmentOverride = 1;
+    PrintPtr += DecoderPrintInstructionFromFields(PrintPtr, Fields->SecondOpCode, 0);
   }
   else if((Fields->OpCodeStats.StateFlags & OPCODE_ONLY_PRINT_OP) != OPCODE_ONLY_PRINT_OP)
   {
@@ -229,9 +243,15 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
 
 
     char RMString[64] = {0};
+    char SegString[4] = {0};
     if(((Fields->RM.StateFlags & FIELD_EXISTS) == FIELD_EXISTS) ||
        ((Fields->Displacement.StateFlags & FIELD_EXISTS) == FIELD_EXISTS))
     {
+      if(Fields->IsSegmentOverride)
+      {
+        sprintf(SegString, "%s:", SegTable[Fields->SegmentReg.FieldValue]);
+      }
+
       u32 RMIndex = Fields->RM.FieldValue + (8*Fields->Mod.FieldValue);
       if(Fields->Mod.StateFlags == FIELD_DOES_NOT_EXIST)
       {
@@ -324,6 +344,9 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
           }
         }
       }
+      char TMPRMString[64];
+      sprintf(TMPRMString, "%s%s", SegString, RMString);
+      sprintf(RMString, "%s", TMPRMString);
     }
 
     if((Fields->Data.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
@@ -523,10 +546,18 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
     }
   }
 
+  //@SPEED @NOTE(Emilio): Again, clean up should happen but for now,
+  //  segment overrides and locks do not need new lines during the first
+  //  opcode.
+  if(ShouldAddNewLine)
+  {
+    PrintPtr += sprintf(PrintPtr, "\n");
+  }
+
   if(WritePtr)
   {
     //@HARDCODE(Emilio): We should make functions for new line and comments
-    Result = sprintf(WritePtr, "%s\n", PrintBuffer);
+    Result = sprintf(WritePtr, "%s", PrintBuffer);
   }
   else
   {
@@ -540,7 +571,7 @@ file_scope void
 DecoderPrintSingleInstruction(ecb_string *WriteBuffer, decoder_opcode *Fields)
 {
   u32 BytesRead =
-    DecoderPrintInstructionFromFields(WriteBuffer->Content, Fields);
+    DecoderPrintInstructionFromFields(WriteBuffer->Content, Fields, 1);
 
   WriteBuffer->ContentSize += BytesRead;
   WriteBuffer->Content = (u8 *)WriteBuffer->Content + BytesRead;
@@ -587,7 +618,7 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream, u32 StreamSize)
   u32 DEBUGCount = 0;
   while(StreamSize)
   {
-    if(DEBUGCount == 303)
+    if(DEBUGCount == 318)
     {
       char* DEBUGString = (WriteBuffer->Content - 50);
       printf("hello world \n");
@@ -595,8 +626,12 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream, u32 StreamSize)
     decoder_opcode OpCodeFields = DecoderReadSingleInstruction(InputStream, &InstructionCount);
     decoder_opcode SecondOpCodeFields = {};
 
+    b32 IsSegmentOverride = (OpCodeFields.OpCodeStats.OpCode == SEG_OVERRIDE_INSTRUCTION_01) &&
+     (OpCodeFields.RM.FieldValue == SEG_OVERRIDE_INSTRUCTION_02);
+
+
     if(((OpCodeFields.ZeroFlag.StateFlags & FIELD_EXISTS) == FIELD_EXISTS) ||
-      (OpCodeFields.OpCodeStats.OpCode == 0xF0))
+      (OpCodeFields.OpCodeStats.OpCode == 0xF0) || IsSegmentOverride)
     {
       u32 TempCount = InstructionCount;
       SecondOpCodeFields = DecoderReadSingleInstruction((InputStream+TempCount), &InstructionCount);

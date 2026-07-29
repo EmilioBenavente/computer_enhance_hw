@@ -6,8 +6,8 @@
 #include "8086_CPU_def.h"
 #include "ecb_utils.h"
 
-#define TEST_FILE "../../../computer_enhance/perfaware/part1/listing_0042_completionist_decode"
-//#define TEST_FILE "../data/test"
+//#define TEST_FILE "../../../computer_enhance/perfaware/part1/listing_0042_completionist_decode"
+#define TEST_FILE "../data/hw"
 #define TEMP_PRINT_BUFFER_SIZE 1024
 
 //@NOTE(Emilio): OpCode SHOULD be extracted vis OpCode = (OpCode >> Shift) & Mask;
@@ -53,6 +53,10 @@ typedef plex decoder_opcode
   //@NOTE(Emilio): The rep/lock and segment override instructions need a second set of instructions.
   //@SPEED(Emilio): For testing purposes, this will be filled out at the end of DecoderExtractValuesFromField.
   plex decoder_opcode *SecondOpCode;
+  //@NOTE(Emilio): Can only be set by the parent OpCode.
+  //  e.g. is only set inside the SecondOpCode and is set by the
+  //  first Opcode.
+  b32 IsSegmentOverride;
 } decoder_opcode;
 
 typedef plex
