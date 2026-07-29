@@ -88,7 +88,8 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
     StreamPtr->Pointer++;
 
     if(Fields->WideFlag.FieldValue &&
-      ((Fields->Data.StateFlags & FIELD_IS_PORT_DATA) != FIELD_IS_PORT_DATA))
+      ((Fields->Data.StateFlags & FIELD_IS_PORT_DATA) != FIELD_IS_PORT_DATA) ||
+      ((Fields->Data.StateFlags & FIELD_IS_EXPLICITLY_16BITS) == FIELD_IS_EXPLICITLY_16BITS))
     {
       if((Fields->SignExtendFlag.StateFlags == FIELD_DOES_NOT_EXIST)      ||
         ((Fields->SignExtendFlag.StateFlags & FIELD_EXISTS == FIELD_EXISTS) && (Fields->SignExtendFlag.FieldValue == 0)))
@@ -199,11 +200,16 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
   PrintPtr += sprintf(PrintPtr, "%s", Fields->OpCodeStats.OpCodeString);
 
   b32 IsWide = Fields->WideFlag.FieldValue;
+  b32 IsCallOp = ECB_IsStringEqual(Fields->OpCodeStats.OpCodeString, "call");
 
-  if(Fields->OpCodeStats.OpCode == REP_INSTRUCTION)
+  if((Fields->ZeroFlag.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
   {
     char* ImplicitSize = Fields->SecondOpCode->WideFlag.FieldValue ? "w" :"b";
     PrintPtr += sprintf(PrintPtr, " %s%s", Fields->SecondOpCode->OpCodeStats.OpCodeString, ImplicitSize);
+  }
+  else if(Fields->OpCodeStats.OpCode == 0xF0)
+  {
+    PrintPtr += sprintf(PrintPtr, " %s", Fields->SecondOpCode->OpCodeStats.OpCodeString);
   }
   else if((Fields->OpCodeStats.StateFlags & OPCODE_ONLY_PRINT_OP) != OPCODE_ONLY_PRINT_OP)
   {
@@ -241,8 +247,46 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
       }
       else if(Fields->Mod.FieldValue == 0x3)
       {
-        RMIndex += (8*IsWide);
+        if((Fields->WideFlag.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
+        {
+          RMIndex += (8*IsWide);
+        }
+        else
+        {
+          RMIndex = (32+Fields->RM.FieldValue);
+        }
+
         sprintf(RMString, "%s", RMTable[RMIndex]);
+      }
+      else if(IsCallOp)
+      {
+        sprintf(RMString, "%s", RMTable[RMIndex]);
+
+        if((Fields->Displacement.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
+        {
+          s16 DisplacementValue = Fields->Displacement.FieldValue;
+
+          if((Fields->Mod.FieldValue == 0x0) &&
+            (Fields->RM.FieldValue == RM_16BIT_IMM_CASE))
+          {
+            sprintf(RMString, "[%d]", (u16)DisplacementValue);
+          }
+          else
+          {
+            if(DisplacementValue == 0)
+            {
+              sprintf(RMString, "[%s]", RMTable[RMIndex]);
+            }
+            else if(DisplacementValue > 0)
+            {
+              sprintf(RMString, "[%s + %d]", RMTable[RMIndex], DisplacementValue);
+            }
+            else
+            {
+              sprintf(RMString, "[%s - %d]", RMTable[RMIndex], (DisplacementValue * -1));
+            }
+          }
+        }
       }
       else
       {
@@ -368,6 +412,17 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
           PrintPtr += sprintf(PrintPtr, "%s, -%d", RMString, (DataValue * -1));
         }
       }
+      else if(Fields->WideFlag.StateFlags == FIELD_DOES_NOT_EXIST)
+      {
+        if(DataValue > 0)
+        {
+          PrintPtr += sprintf(PrintPtr, "%d", DataValue);
+        }
+        else
+        {
+          PrintPtr += sprintf(PrintPtr, "-%d", (DataValue * -1));
+        }
+      }
       else
       {
         char* ImplicitSize = IsWide ? "word" :"byte";
@@ -409,7 +464,7 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
       }
     }
     //@HARDCODE(Emilio): PUSH/POP need "word", find better solution later
-    else if((Fields->OpCodeStats.OpCode == 0xFF) ||
+    else if((Fields->OpCodeStats.OpCode == 0xFF && Fields->Reg.FieldValue == 0x6) ||
             (Fields->OpCodeStats.OpCode == 0x8F))
     {
       PrintPtr += sprintf(PrintPtr, "word %s", RMString);
@@ -432,9 +487,16 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields)
     {
       PrintPtr += sprintf(PrintPtr, "%s", RegString);
     }
+    //@TODO @SPEED(Emilio): We need to clean up this if nesting pretty soon.
+    //@NOTE(Emilio): This one is for the call functions.
+    else if(IsCallOp)
+    {
+      PrintPtr += sprintf(PrintPtr, "%s", RMString);
+    }
     else if((Fields->Reg.StateFlags & FIELD_EXISTS) == FIELD_DOES_NOT_EXIST)
     {
-      if(Fields->Mod.FieldValue == 0x3)
+      if((Fields->Mod.FieldValue == 0x3) ||
+        (Fields->WideFlag.StateFlags == FIELD_DOES_NOT_EXIST))
       {
         PrintPtr += sprintf(PrintPtr, "%s", RMString);
       }
@@ -525,7 +587,7 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream, u32 StreamSize)
   u32 DEBUGCount = 0;
   while(StreamSize)
   {
-    if(DEBUGCount == 235)
+    if(DEBUGCount == 303)
     {
       char* DEBUGString = (WriteBuffer->Content - 50);
       printf("hello world \n");
@@ -533,7 +595,8 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream, u32 StreamSize)
     decoder_opcode OpCodeFields = DecoderReadSingleInstruction(InputStream, &InstructionCount);
     decoder_opcode SecondOpCodeFields = {};
 
-    if(OpCodeFields.OpCodeStats.OpCode == REP_INSTRUCTION)
+    if(((OpCodeFields.ZeroFlag.StateFlags & FIELD_EXISTS) == FIELD_EXISTS) ||
+      (OpCodeFields.OpCodeStats.OpCode == 0xF0))
     {
       u32 TempCount = InstructionCount;
       SecondOpCodeFields = DecoderReadSingleInstruction((InputStream+TempCount), &InstructionCount);
