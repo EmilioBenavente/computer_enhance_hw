@@ -26,7 +26,7 @@ DecoderGetFieldValueAndUpdateBitCount(decoder_field *Field, decoder_stream_point
 }
 
 file_scope void
-DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *StreamPtr)
+DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *StreamPtr, u32 IPCount)
 {
   StreamPtr->BitCount += Fields->OpCodeStats.BitCount;
 
@@ -79,7 +79,8 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
   {
     b32 IsSecondDataExist = (Fields->OpCodeStats.OpCode == 0x9A) ||
       (Fields->OpCodeStats.OpCode == 0xEA);
-    if((Fields->Data.StateFlags & FIELD_IS_UNSIGNED_DATA) == FIELD_IS_UNSIGNED_DATA)
+    if(((Fields->Data.StateFlags & FIELD_IS_UNSIGNED_DATA) == FIELD_IS_UNSIGNED_DATA) ||
+        ((Fields->Data.StateFlags & FIELD_IS_UNSIGNED_TEST_DATA) == FIELD_IS_UNSIGNED_TEST_DATA))
     {
       Fields->Data.FieldValue = (u32)((u8)*StreamPtr->Pointer);
     }
@@ -100,6 +101,7 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
         s32 OriginalValue = (Fields->Data.FieldValue & 0xFF);
         Fields->Data.FieldValue &= 0xFF;
         Fields->Data.FieldValue |= (*StreamPtr->Pointer << 8);
+
         StreamPtr->Pointer++;
       }
     }
@@ -202,7 +204,7 @@ DecoderGetOpCodeFromStream(u8 *InputStream)
 
 //@NOTE(Emilio): Returns the number bytes printed.
 file_scope u32
-DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields, b32 ShouldAddNewLine, b32 IsThirdRecursiveVisit)
+DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields, b32 ShouldAddNewLine)
 {
   u32 Result = 0;
 
@@ -234,15 +236,13 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields, b32 Sh
   {
     PrintPtr += sprintf(PrintPtr, " ");
 
-    if(Fields->SecondOpCode)
-
-    PrintPtr += DecoderPrintInstructionFromFields(PrintPtr, Fields->SecondOpCode, 0, 1);
+    PrintPtr += DecoderPrintInstructionFromFields(PrintPtr, Fields->SecondOpCode, 0);
   }
   else if(IsSegmentOverride)
   {
     Fields->SecondOpCode->SegmentReg.FieldValue = Fields->SegmentReg.FieldValue;
     Fields->SecondOpCode->IsSegmentOverride = 1;
-    PrintPtr += DecoderPrintInstructionFromFields(PrintPtr, Fields->SecondOpCode, 0, 1);
+    PrintPtr += DecoderPrintInstructionFromFields(PrintPtr, Fields->SecondOpCode, 0);
   }
   else if((Fields->Data2.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
   {
@@ -253,7 +253,7 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields, b32 Sh
     PrintPtr += sprintf(PrintPtr, " ");
     if(IsFarOp)
     {
-      PrintPtr += sprintf(PrintPtr, "far ", Fields->OpCodeStats.OpCodeString);
+      PrintPtr += sprintf(PrintPtr, "far ");
     }
 
     char* RegString = 0;
@@ -276,7 +276,7 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields, b32 Sh
     if(((Fields->RM.StateFlags & FIELD_EXISTS) == FIELD_EXISTS) ||
        ((Fields->Displacement.StateFlags & FIELD_EXISTS) == FIELD_EXISTS))
     {
-      if(Fields->IsSegmentOverride || IsThirdRecursiveVisit)
+      if(Fields->IsSegmentOverride)
       {
         sprintf(SegString, "%s:", SegTable[Fields->SegmentReg.FieldValue]);
       }
@@ -618,7 +618,7 @@ file_scope void
 DecoderPrintSingleInstruction(ecb_string *WriteBuffer, decoder_opcode *Fields)
 {
   u32 BytesRead =
-    DecoderPrintInstructionFromFields(WriteBuffer->Content, Fields, 1, 0);
+    DecoderPrintInstructionFromFields(WriteBuffer->Content, Fields, 1);
 
   WriteBuffer->ContentSize += BytesRead;
   WriteBuffer->Content = (u8 *)WriteBuffer->Content + BytesRead;
@@ -629,7 +629,7 @@ DecoderPrintSingleInstruction(ecb_string *WriteBuffer, decoder_opcode *Fields)
 //  call this function twice to complete an instruction with two sets of
 //  op code fields like the rep instruction.
 file_scope decoder_opcode
-DecoderReadSingleInstruction(u8 *InputStream, u32 *ReturnNewInstructionOffset)
+DecoderReadSingleInstruction(u8 *InputStream, u32 IPCount, u32 *ReturnNewInstructionOffset)
 {
   ECB_ASSERT(InputStream);
 
@@ -643,11 +643,20 @@ DecoderReadSingleInstruction(u8 *InputStream, u32 *ReturnNewInstructionOffset)
     StreamPtr.Pointer  = (u8*)InputStream;
     StreamPtr.BitCount = 0;
 
-    DecoderExtractValuesFromField(&Result, &StreamPtr);
+    DecoderExtractValuesFromField(&Result, &StreamPtr, IPCount);
+
+    u32 NewOffset = StreamPtr.Pointer - InputStream;
+
+    if((Result.OpCodeStats.OpCode == 0xE9) ||
+      (Result.OpCodeStats.OpCode == 0xE8))
+    {
+      Result.Data.FieldValue += IPCount;
+    }
+
 
     if(ReturnNewInstructionOffset)
     {
-      *ReturnNewInstructionOffset = StreamPtr.Pointer - InputStream;
+      *ReturnNewInstructionOffset = NewOffset;
     }
   }
 
@@ -663,26 +672,26 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream, u32 StreamSize)
   u32 InstructionCount = 0;
   //@NOTE(Emilio): We are currently debugging logical shift instructions
   u32 DEBUGCount = 0;
+  u32 IPCount = 0;
   while(StreamSize)
   {
-    if(DEBUGCount == 328)
+    if(DEBUGCount == 327)
     {
       char* DEBUGString = (WriteBuffer->Content - 50);
       printf("hello world \n");
     }
-    decoder_opcode OpCodeFields = DecoderReadSingleInstruction(InputStream, &InstructionCount);
+
+    decoder_opcode OpCodeFields = DecoderReadSingleInstruction(InputStream, IPCount, &InstructionCount);
     decoder_opcode SecondOpCodeFields = {};
     decoder_opcode ThirdOpCodeFields = {};
 
     b32 IsSegmentOverride = (OpCodeFields.OpCodeStats.OpCode == SEG_OVERRIDE_INSTRUCTION_01) &&
      (OpCodeFields.RM.FieldValue == SEG_OVERRIDE_INSTRUCTION_02);
 
-
     if(((OpCodeFields.ZeroFlag.StateFlags & FIELD_EXISTS) == FIELD_EXISTS) ||
-      (OpCodeFields.OpCodeStats.OpCode == 0xF0) || IsSegmentOverride)
-    {
+      (OpCodeFields.OpCodeStats.OpCode == 0xF0) || IsSegmentOverride) {
       u32 TempCount = InstructionCount;
-      SecondOpCodeFields = DecoderReadSingleInstruction((InputStream+TempCount), &InstructionCount);
+      SecondOpCodeFields = DecoderReadSingleInstruction((InputStream+TempCount), IPCount, &InstructionCount);
       OpCodeFields.SecondOpCode = &SecondOpCodeFields;
       InstructionCount += TempCount;
 
@@ -691,11 +700,13 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream, u32 StreamSize)
       //  can be sequential for an infinite amount of times so we might
       //  need to make a maximum memory barrier or handle this in some other
       //  way dynamically. For now the maximum OpCodes will be 3.
-      if(((SecondOpCodeFields.ZeroFlag.StateFlags & FIELD_EXISTS) == FIELD_EXISTS) ||
-        (SecondOpCodeFields.OpCodeStats.OpCode == 0xF0))
+      IsSegmentOverride = (SecondOpCodeFields.OpCodeStats.OpCode == SEG_OVERRIDE_INSTRUCTION_01) &&
+        (SecondOpCodeFields.RM.FieldValue == SEG_OVERRIDE_INSTRUCTION_02);
+
+      if(IsSegmentOverride)
       {
         TempCount = InstructionCount;
-        ThirdOpCodeFields = DecoderReadSingleInstruction((InputStream+TempCount), &InstructionCount);
+        ThirdOpCodeFields = DecoderReadSingleInstruction((InputStream+TempCount), IPCount, &InstructionCount);
         SecondOpCodeFields.SecondOpCode = &ThirdOpCodeFields;
         InstructionCount += TempCount;
       }
@@ -713,6 +724,9 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream, u32 StreamSize)
       return;
     }
     DEBUGCount++;
+
+    //@TODO @NOTE(Emilio): This won't handle recursive instructions, wait until simulator part to fix.
+    IPCount += InstructionCount;
   }
 }
 

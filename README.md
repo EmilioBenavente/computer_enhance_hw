@@ -16,6 +16,8 @@ you will have to provide your own assembly code file at the moment and update th
 reference file path in 8086_decoder.h #define TEST_FILE.
 
 ![Screenshot of the interface, showing the memory view, decoder engine, and the cpu registers](computer_enhance/misc/8086Sim_Demo_01.png)
+![Screenshot of the diff in a real program, showing the an array of OpCodes](computer_enhance/misc/BinaryDiff.png)
+
 
 > [!NOTE]
 > If you install the latest version, there will be no gui interface.
@@ -55,7 +57,7 @@ You can now run the application using this command
 ..\..\build\win32_enhance.exe
 ```
 
-# linux
+# Linux
 
 Download this project's source.
 

@@ -6,8 +6,8 @@
 #include "8086_CPU_def.h"
 #include "ecb_utils.h"
 
-//#define TEST_FILE "../../../computer_enhance/perfaware/part1/listing_0042_completionist_decode"
-#define TEST_FILE "../data/test"
+#define TEST_FILE "../../../computer_enhance/perfaware/part1/listing_0042_completionist_decode"
+//#define TEST_FILE "../data/test"
 #define TEMP_PRINT_BUFFER_SIZE 1024
 
 //@NOTE(Emilio): OpCode SHOULD be extracted vis OpCode = (OpCode >> Shift) & Mask;
