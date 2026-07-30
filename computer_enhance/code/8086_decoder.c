@@ -77,6 +77,8 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
 
   if((Fields->Data.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
   {
+    b32 IsSecondDataExist = (Fields->OpCodeStats.OpCode == 0x9A) ||
+      (Fields->OpCodeStats.OpCode == 0xEA);
     if((Fields->Data.StateFlags & FIELD_IS_UNSIGNED_DATA) == FIELD_IS_UNSIGNED_DATA)
     {
       Fields->Data.FieldValue = (u32)((u8)*StreamPtr->Pointer);
@@ -89,7 +91,8 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
 
     if(Fields->WideFlag.FieldValue &&
       ((Fields->Data.StateFlags & FIELD_IS_PORT_DATA) != FIELD_IS_PORT_DATA) ||
-      ((Fields->Data.StateFlags & FIELD_IS_EXPLICITLY_16BITS) == FIELD_IS_EXPLICITLY_16BITS))
+      ((Fields->Data.StateFlags & FIELD_IS_EXPLICITLY_16BITS) == FIELD_IS_EXPLICITLY_16BITS) ||
+      IsSecondDataExist)
     {
       if((Fields->SignExtendFlag.StateFlags == FIELD_DOES_NOT_EXIST)      ||
         ((Fields->SignExtendFlag.StateFlags & FIELD_EXISTS == FIELD_EXISTS) && (Fields->SignExtendFlag.FieldValue == 0)))
@@ -99,6 +102,14 @@ DecoderExtractValuesFromField(decoder_opcode *Fields, decoder_stream_pointer *St
         Fields->Data.FieldValue |= (*StreamPtr->Pointer << 8);
         StreamPtr->Pointer++;
       }
+    }
+
+    if(IsSecondDataExist)
+    {
+      Fields->Data2.FieldValue = (u32)(*(s16*)StreamPtr->Pointer);
+      Fields->Data2.StateFlags = FIELD_EXISTS;
+
+      StreamPtr->Pointer += 2;
     }
   }
 }
@@ -191,7 +202,7 @@ DecoderGetOpCodeFromStream(u8 *InputStream)
 
 //@NOTE(Emilio): Returns the number bytes printed.
 file_scope u32
-DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields, b32 ShouldAddNewLine)
+DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields, b32 ShouldAddNewLine, b32 IsThirdRecursiveVisit)
 {
   u32 Result = 0;
 
@@ -200,6 +211,11 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields, b32 Sh
 
   b32 IsSegmentOverride = (Fields->OpCodeStats.OpCode == SEG_OVERRIDE_INSTRUCTION_01) &&
     (Fields->RM.FieldValue == SEG_OVERRIDE_INSTRUCTION_02);
+
+  b32 IsFarOp = ((Fields->OpCodeStats.OpCode == 0xFF) &&
+                ((Fields->Reg.StateFlags & FIELD_IS_OPCODE_EXTENDED) == FIELD_IS_OPCODE_EXTENDED) &&
+                ((Fields->Reg.FieldValue == 0x3) || (Fields->Reg.FieldValue == 0x5)));
+
 
   if(!IsSegmentOverride)
   {
@@ -217,17 +233,28 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields, b32 Sh
   else if(Fields->OpCodeStats.OpCode == 0xF0)
   {
     PrintPtr += sprintf(PrintPtr, " ");
-    PrintPtr += DecoderPrintInstructionFromFields(PrintPtr, Fields->SecondOpCode, 0);
+
+    if(Fields->SecondOpCode)
+
+    PrintPtr += DecoderPrintInstructionFromFields(PrintPtr, Fields->SecondOpCode, 0, 1);
   }
   else if(IsSegmentOverride)
   {
     Fields->SecondOpCode->SegmentReg.FieldValue = Fields->SegmentReg.FieldValue;
     Fields->SecondOpCode->IsSegmentOverride = 1;
-    PrintPtr += DecoderPrintInstructionFromFields(PrintPtr, Fields->SecondOpCode, 0);
+    PrintPtr += DecoderPrintInstructionFromFields(PrintPtr, Fields->SecondOpCode, 0, 1);
+  }
+  else if((Fields->Data2.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
+  {
+    PrintPtr += sprintf(PrintPtr, " %d:%d", (s16)Fields->Data2.FieldValue, (s16)Fields->Data.FieldValue);
   }
   else if((Fields->OpCodeStats.StateFlags & OPCODE_ONLY_PRINT_OP) != OPCODE_ONLY_PRINT_OP)
   {
     PrintPtr += sprintf(PrintPtr, " ");
+    if(IsFarOp)
+    {
+      PrintPtr += sprintf(PrintPtr, "far ", Fields->OpCodeStats.OpCodeString);
+    }
 
     char* RegString = 0;
     if((Fields->Reg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS)
@@ -239,6 +266,8 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields, b32 Sh
     {
       u32 SegIndex = Fields->SegmentReg.FieldValue;
       RegString = SegTable[SegIndex];
+      //@SPEED @HARDCODE(Emilio): This should not stay.
+      Fields->Reg.StateFlags = FIELD_EXISTS;
     }
 
 
@@ -247,7 +276,7 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields, b32 Sh
     if(((Fields->RM.StateFlags & FIELD_EXISTS) == FIELD_EXISTS) ||
        ((Fields->Displacement.StateFlags & FIELD_EXISTS) == FIELD_EXISTS))
     {
-      if(Fields->IsSegmentOverride)
+      if(Fields->IsSegmentOverride || IsThirdRecursiveVisit)
       {
         sprintf(SegString, "%s:", SegTable[Fields->SegmentReg.FieldValue]);
       }
@@ -364,6 +393,18 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields, b32 Sh
           PrintPtr += sprintf(PrintPtr, "$-%d", (DataValue * -1));
         }
       }
+      else if((Fields->Data.StateFlags & FIELD_IS_SEG_JMP_DATA) == FIELD_IS_SEG_JMP_DATA)
+      {
+        DataValue += 3;
+        if(DataValue >= 0)
+        {
+          PrintPtr += sprintf(PrintPtr, "%d", DataValue);
+        }
+        else
+        {
+          PrintPtr += sprintf(PrintPtr, "%d", (DataValue * -1));
+        }
+      }
       else if((Fields->Data.StateFlags & FIELD_IS_PORT_DATA) == FIELD_IS_PORT_DATA)
       {
         //@TODO @NOTE(Emilio): At this point we probably can refactor this whole section
@@ -445,6 +486,12 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields, b32 Sh
         {
           PrintPtr += sprintf(PrintPtr, "-%d", (DataValue * -1));
         }
+      }
+      else if((Fields->Reg.StateFlags == FIELD_DOES_NOT_EXIST) &&
+        (Fields->RM.StateFlags == FIELD_DOES_NOT_EXIST) &&
+        (Fields->WideFlag.StateFlags == FIELD_IS_IMMPLIED))
+      {
+          PrintPtr += sprintf(PrintPtr, "%d", DataValue);
       }
       else
       {
@@ -571,7 +618,7 @@ file_scope void
 DecoderPrintSingleInstruction(ecb_string *WriteBuffer, decoder_opcode *Fields)
 {
   u32 BytesRead =
-    DecoderPrintInstructionFromFields(WriteBuffer->Content, Fields, 1);
+    DecoderPrintInstructionFromFields(WriteBuffer->Content, Fields, 1, 0);
 
   WriteBuffer->ContentSize += BytesRead;
   WriteBuffer->Content = (u8 *)WriteBuffer->Content + BytesRead;
@@ -618,13 +665,14 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream, u32 StreamSize)
   u32 DEBUGCount = 0;
   while(StreamSize)
   {
-    if(DEBUGCount == 318)
+    if(DEBUGCount == 328)
     {
       char* DEBUGString = (WriteBuffer->Content - 50);
       printf("hello world \n");
     }
     decoder_opcode OpCodeFields = DecoderReadSingleInstruction(InputStream, &InstructionCount);
     decoder_opcode SecondOpCodeFields = {};
+    decoder_opcode ThirdOpCodeFields = {};
 
     b32 IsSegmentOverride = (OpCodeFields.OpCodeStats.OpCode == SEG_OVERRIDE_INSTRUCTION_01) &&
      (OpCodeFields.RM.FieldValue == SEG_OVERRIDE_INSTRUCTION_02);
@@ -637,8 +685,21 @@ DecoderReadByteStream(ecb_string *WriteBuffer, u8 *InputStream, u32 StreamSize)
       SecondOpCodeFields = DecoderReadSingleInstruction((InputStream+TempCount), &InstructionCount);
       OpCodeFields.SecondOpCode = &SecondOpCodeFields;
       InstructionCount += TempCount;
-    }
 
+      //@TODO @SPEED(Emilio): This needs to be handled in a seperate branch.
+      //  There is a chance that the lock instruction and segment instruction
+      //  can be sequential for an infinite amount of times so we might
+      //  need to make a maximum memory barrier or handle this in some other
+      //  way dynamically. For now the maximum OpCodes will be 3.
+      if(((SecondOpCodeFields.ZeroFlag.StateFlags & FIELD_EXISTS) == FIELD_EXISTS) ||
+        (SecondOpCodeFields.OpCodeStats.OpCode == 0xF0))
+      {
+        TempCount = InstructionCount;
+        ThirdOpCodeFields = DecoderReadSingleInstruction((InputStream+TempCount), &InstructionCount);
+        SecondOpCodeFields.SecondOpCode = &ThirdOpCodeFields;
+        InstructionCount += TempCount;
+      }
+    }
 
     if(OpCodeFields.OpCodeStats.OpCodeString)
     {

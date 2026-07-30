@@ -16,7 +16,7 @@ main(s32 ArgCount, char **Args)
   ecb_file_result WriteFile = {};
   WriteFile.Content = (u8*)(WriteStream.Content) - WriteStream.ContentSize;
   WriteFile.ContentSize = WriteStream.ContentSize;
-  LinuxWriteEntireFile(&WriteFile, "dump.txt");
+  LinuxWriteEntireFile(&WriteFile, "dump.asm");
   LinuxFreeFile(&InputStream);
 
   return 0;

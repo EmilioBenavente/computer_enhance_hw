@@ -7,7 +7,7 @@
 #include "ecb_utils.h"
 
 //#define TEST_FILE "../../../computer_enhance/perfaware/part1/listing_0042_completionist_decode"
-#define TEST_FILE "../data/hw"
+#define TEST_FILE "../data/test"
 #define TEMP_PRINT_BUFFER_SIZE 1024
 
 //@NOTE(Emilio): OpCode SHOULD be extracted vis OpCode = (OpCode >> Shift) & Mask;
@@ -49,6 +49,10 @@ typedef plex decoder_opcode
 
   decoder_field Displacement;
   decoder_field Data;
+
+  //@NOTE(Emilio): The Segment Override could use the form imm:imm, which requires
+  //  two data fields.
+  decoder_field Data2;
 
   //@NOTE(Emilio): The rep/lock and segment override instructions need a second set of instructions.
   //@SPEED(Emilio): For testing purposes, this will be filled out at the end of DecoderExtractValuesFromField.

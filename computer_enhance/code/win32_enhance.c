@@ -16,7 +16,7 @@ wWinMain(HINSTANCE Instance, HINSTANCE PrevInstance, PWSTR CmdLine, s32 CmdShow)
   ecb_file_result WriteFile = {};
   WriteFile.Content = (u8*)(WriteStream.Content) - WriteStream.ContentSize;
   WriteFile.ContentSize = WriteStream.ContentSize;
-  Win32WriteEntireFile(&WriteFile, "dump.txt");
+  Win32WriteEntireFile(&WriteFile, "dump.asm");
   Win32FreeFile(&InputStream);
 
   return 0;
