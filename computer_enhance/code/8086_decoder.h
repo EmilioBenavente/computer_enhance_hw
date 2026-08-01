@@ -6,9 +6,7 @@
 #include "8086_CPU_def.h"
 #include "ecb_utils.h"
 
-#define TEST_FILE "../../../computer_enhance/perfaware/part1/listing_0042_completionist_decode"
-//#define TEST_FILE "../data/test"
-#define TEMP_PRINT_BUFFER_SIZE 1024
+#define TEST_FILE "../../../computer_enhance/perfaware/part1/listing_0045_challenge_register_movs"
 
 //@NOTE(Emilio): OpCode SHOULD be extracted vis OpCode = (OpCode >> Shift) & Mask;
 typedef plex
@@ -68,30 +66,6 @@ typedef plex
   u8* Pointer;
   u32 BitCount;
 } decoder_stream_pointer;
-
-char *RegTable[REG_TABLE_8086_SIZE] =
-{
-  "al", "cl", "dl", "bl",
-  "ah", "ch", "dh", "bh",
-  "ax", "cx", "dx", "bx",
-  "sp", "bp", "si", "di"
-};
-
-char *SegTable[SEG_TABLE_8086_SIZE] =
-{
-  "es", "cs", "ss", "ds"
-};
-
-
-#define RM_16BIT_IMM_CASE 0x6
-char *RMTable[RM_TABLE_8086_SIZE] =
-{
-  "bx + si", "bx + di", "bp + si", "bp + di", "si", "di", "NOOO!", "bx",
-  "bx + si", "bx + di", "bp + si", "bp + di", "si", "di", "bp", "bx",
-  "bx + si", "bx + di", "bp + si", "bp + di", "si", "di", "bp", "bx",
-  "al", "cl", "dl", "bl", "ah", "ch", "dh", "bh",
-  "ax", "cx", "dx", "bx", "sp", "bp", "si", "di"
-};
 
 decoder_opcode OpCodes8086Table[OP_CODE_TABLE_8086_SIZE] =
 {

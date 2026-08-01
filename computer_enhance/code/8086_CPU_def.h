@@ -1,6 +1,7 @@
 #if !defined(_8086_CPU_H_)
 #define _8086_CPU_H_
 
+
 enum OP_CODE_TABLE_8086
 {
   //@NOTE(Emilio): mov instructions
@@ -275,6 +276,30 @@ enum RM_TABLE_8086
 
   RM_TABLE_8086_SIZE
 };
+
+char *RegTable[REG_TABLE_8086_SIZE] =
+{
+  "al", "cl", "dl", "bl",
+  "ah", "ch", "dh", "bh",
+  "ax", "cx", "dx", "bx",
+  "sp", "bp", "si", "di"
+};
+
+char *SegTable[SEG_TABLE_8086_SIZE] =
+{
+  "es", "cs", "ss", "ds"
+};
+
+#define RM_16BIT_IMM_CASE 0x6
+char *RMTable[RM_TABLE_8086_SIZE] =
+{
+  "bx + si", "bx + di", "bp + si", "bp + di", "si", "di", "NOOO!", "bx",
+  "bx + si", "bx + di", "bp + si", "bp + di", "si", "di", "bp", "bx",
+  "bx + si", "bx + di", "bp + si", "bp + di", "si", "di", "bp", "bx",
+  "al", "cl", "dl", "bl", "ah", "ch", "dh", "bh",
+  "ax", "cx", "dx", "bx", "sp", "bp", "si", "di"
+};
+
 
 
 #define OPCODE_HAS_ZERO_FIELDS                      (1 << 0)

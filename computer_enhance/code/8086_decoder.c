@@ -208,7 +208,7 @@ DecoderPrintInstructionFromFields(char *WritePtr, decoder_opcode *Fields, b32 Sh
 {
   u32 Result = 0;
 
-  char PrintBuffer[TEMP_PRINT_BUFFER_SIZE];
+  char PrintBuffer[ECB_TEMP_PRINT_BUFFER_SIZE];
   char* PrintPtr = PrintBuffer;
 
   b32 IsSegmentOverride = (Fields->OpCodeStats.OpCode == SEG_OVERRIDE_INSTRUCTION_01) &&

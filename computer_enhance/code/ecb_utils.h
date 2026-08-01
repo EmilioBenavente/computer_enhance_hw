@@ -29,6 +29,7 @@ typedef uint32_t  b32;
 #define GigaBytes(Value) (MegaBytes(Value) * 1024)
 
 #define ECB_ASSERT(Expression) if(!(Expression)) {(*(u32*)0) = 0;}
+#define ECB_TEMP_PRINT_BUFFER_SIZE 1024
 
 #define ArraySize(Array) (sizeof((Array)) / sizeof((Array)[0]))
 
