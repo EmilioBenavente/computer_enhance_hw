@@ -6,7 +6,7 @@
 #include "8086_CPU_def.h"
 #include "ecb_utils.h"
 
-#define TEST_FILE "../../../computer_enhance/perfaware/part1/listing_0045_challenge_register_movs"
+#define TEST_FILE "../../../computer_enhance/perfaware/part1/listing_0046_add_sub_cmp"
 
 //@NOTE(Emilio): OpCode SHOULD be extracted vis OpCode = (OpCode >> Shift) & Mask;
 typedef plex

@@ -62,16 +62,15 @@ SimulatorPrintRegisters(char* WritePtr, cpu_program *Program, b32 IsHexMode)
   }
 
   PrintPtr += sprintf(PrintPtr, "\tFLAGS -> ");
-  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & 0x0) ? ' ': 'Z');
-  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & 0x0) ? ' ': 'Z');
-  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & 0x0) ? ' ': 'Z');
-  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & 0x0) ? ' ': 'Z');
-  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & 0x0) ? ' ': 'Z');
-  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & 0x0) ? ' ': 'Z');
-  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & 0x0) ? ' ': 'Z');
-  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & 0x0) ? ' ': 'Z');
-  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & 0x0) ? ' ': 'Z');
-  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & 0x0) ? ' ': 'Z');
+  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & CARRY_FLAG)      ? 'C' : ' ');
+  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & PARITY_FLAG)     ? 'P' : ' ');
+  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & AUXILIARY_FLAG)  ? 'A' : ' ');
+  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & ZERO_FLAG)       ? 'Z' : ' ');
+  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & SIGN_FLAG)       ? 'S' : ' ');
+  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & TRAP_FLAG)       ? 'T' : ' ');
+  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & INTERRUPT_FLAG)  ? 'I' : ' ');
+  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & DIRECTION_FLAG)  ? 'D' : ' ');
+  PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & OVERFLOW_FLAG)   ? 'O' : ' ');
   PrintPtr += sprintf(PrintPtr, "\n}\n");
  
   if(WritePtr)
@@ -87,27 +86,140 @@ SimulatorPrintRegisters(char* WritePtr, cpu_program *Program, b32 IsHexMode)
   return Result;
 }
 
+file_scope lea_result
+SimulatorLoadRegisterValue(cpu_program *Program, u16 RegisterIndex)
+{
+  lea_result Result = {};
+
+  if(RegisterIndex >= 8)
+  {
+    RegisterIndex = (RegisterIndex - 8);
+    Result.Address = (u16 *)&Program->Registers.A + RegisterIndex;
+    Result.Value = *Result.Address;
+  }
+  else
+  {
+    u16 RegOffset = RegisterIndex % 4;
+    reg_mix *RegPtr = &Program->Registers.A + RegOffset;
+
+    Result.Address = (u16 *)RegPtr;
+    if(RegisterIndex < 4)
+    {
+      Result.Value = RegPtr->L;
+      Result.IsLow = 1;
+    }
+    else
+    {
+      Result.Value = RegPtr->H;
+      Result.IsHigh = 1;
+    }
+  }
+
+  return Result;
+}
+
+
+file_scope lea_result
+SimulatorLoadEffectiveAddress(cpu_program *Program, u16 RMIndex)
+{
+  lea_result Result = {};
+
+  if(RMIndex == RM_16BIT_IMM_CASE)
+  {
+    Result.Value = Program->Data.Value;
+  }
+  else
+  {
+    lea_contents Contents = {};
+
+    if(Program->Displacement.IsExist)
+    {
+      Contents.Displacement = Program->Displacement.Value;
+    }
+
+    RMIndex = RMIndex % 8;
+
+    switch(RMIndex)
+    {
+      case 0:
+      {
+        Contents.Left   = (u16 *)&Program->Registers.B;
+        Contents.Right  = &Program->Registers.SI;
+      } break;
+      case 1:
+      {
+        Contents.Left   = (u16 *)&Program->Registers.B;
+        Contents.Right  = &Program->Registers.DI;
+      } break;
+      case 2:
+      {
+        Contents.Left   = &Program->Registers.BP;
+        Contents.Right  = &Program->Registers.SI;
+      } break;
+      case 3:
+      {
+        Contents.Left   = &Program->Registers.BP;
+        Contents.Right  = &Program->Registers.DI;
+      } break;
+      case 4:
+      {
+        Contents.Left   = &Program->Registers.SI;
+      } break;
+      case 5:
+      {
+        Contents.Left   = &Program->Registers.DI;
+      } break;
+      case 6:
+      {
+        Contents.Left   = &Program->Registers.BP;
+      } break;
+      case 7:
+      {
+        Contents.Left   = (u16 *)&Program->Registers.B;
+      } break;
+    }
+
+    u16 MemAddress = *(Contents.Left) + 
+      ((Contents.Right) ? *(Contents.Right) : 0) +
+      + Contents.Displacement;
+    Result.Address = (u16 *)&SimMemory[MemAddress];
+    Result.Value   = SimMemory[MemAddress];
+  }
+
+  return Result;
+}
+
+
 file_scope void
 SimulatorFillProgramWithDecoderFields(cpu_program *Program, decoder_opcode *Fields)
 {
   //@TODO @HARDCODE(Emilio): Should do something like if(FieldExist) -> Get Value.
   Program->CurrentOpCodeString = Fields->OpCodeStats.OpCodeString;
+  Program->Reg.IsExist  =   (Fields->Reg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS || Fields->Reg.FieldValue != 0;
   Program->Reg.Value    =    Fields->Reg.FieldValue + (8*Fields->WideFlag.FieldValue);
-  Program->Reg.IsExist  =   (Fields->Reg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS;
+  Program->Seg.IsExist  =   (Fields->SegmentReg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS || Fields->SegmentReg.FieldValue != 0;
   Program->Seg.Value    =    Fields->SegmentReg.FieldValue;
-  Program->Seg.IsExist  =   (Fields->SegmentReg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS;
-  Program->Destination.IsExist = (Fields->DestinationFlag.StateFlags & FIELD_EXISTS) == FIELD_EXISTS;
+  Program->Destination.IsExist = (Fields->DestinationFlag.StateFlags & FIELD_EXISTS) == FIELD_EXISTS || Fields->DestinationFlag.FieldValue != 0;
   Program->Destination.Value  = Fields->DestinationFlag.FieldValue;
-  Program->Mod.IsExist  = (Fields->Mod.StateFlags & FIELD_EXISTS) == FIELD_EXISTS;
-  Program->Mod.Value    = Fields->Mod.FieldValue;
+  Program->Data.IsExist =   (Fields->Data.StateFlags & FIELD_EXISTS) == FIELD_EXISTS || Fields->Data.FieldValue != 0;
   Program->Data.Value   =    Fields->Data.FieldValue;
-  Program->Data.IsExist =   (Fields->Data.StateFlags & FIELD_EXISTS) == FIELD_EXISTS;
+  Program->RM.IsExist   = (Fields->RM.StateFlags & FIELD_EXISTS) == FIELD_EXISTS || Fields->RM.FieldValue != 0;
   Program->OpCodeData2  = Fields->Data2.FieldValue;
-  Program->RM.IsExist   = (Fields->RM.StateFlags & FIELD_EXISTS) == FIELD_EXISTS;
+
+  if(Program->Seg.IsExist)
+  {
+    Program->Destination.IsExist  = 1;
+    Program->Destination.Value    = Fields->OpCodeStats.OpCode == 0x8E ? 1 : 0;
+  }
 
   if(Fields->Mod.FieldValue == 0x3)
   {
     Program->RM.Value = Fields->RM.FieldValue + 24 + (8*Fields->WideFlag.FieldValue);
+    if(Program->Seg.IsExist)
+    {
+      //@NOTE(Emilio): Segment values only operate on 16 bit values.
+      Program->RM.Value += 8;
+    }
   }
   else
   {
@@ -117,209 +229,176 @@ SimulatorFillProgramWithDecoderFields(cpu_program *Program, decoder_opcode *Fiel
   }
 }
 
-file_scope get_register_result
-SimulatorGetRegisterPtr(cpu_program *Program, b32 SrcTable)
+file_scope alu_contents
+SimulatorLoadALU(cpu_program *Program, sim_op_type OpType)
 {
-  get_register_result Result = {};
-  u16 RegisterOffset = 0;
-  if(SrcTable == SIM_REG_TABLE)
-  {
-    RegisterOffset = Program->Reg.Value % 4;
-    if(Program->Reg.Value < 12)
-    {
-      Result.RegPart1 = (u16 *)(&Program->Registers.A + RegisterOffset);
-    }
-    else
-    {
-      Result.RegPart1 = (u16 *)&Program->Registers.SP + RegisterOffset;
-    }
-  }
-  else if(SrcTable == SIM_SEG_TABLE)
-  {
-    Result.RegPart1 = &(Program->Registers.ES);
-    Result.RegPart1 += Program->Seg.Value;
-  }
-  else if(SrcTable == SIM_RM_TABLE)
-  {
+  alu_contents Result = {};
 
-    if(Program->RM.Value < 24)
-    {
-      RegisterOffset = Program->RM.Value % 8;
-      switch(RegisterOffset)
-      {
-        case 0:
-        {
-          Result.RegPart1 = (u16 *)&Program->Registers.B;
-          Result.RegPart2 = &Program->Registers.SI;
-        } break;
-        case 1:
-        {
-          Result.RegPart1 = (u16 *)&Program->Registers.B;
-          Result.RegPart2 = &Program->Registers.DI;
-        } break;
-        case 2:
-        {
-          Result.RegPart1 = &Program->Registers.BP;
-          Result.RegPart2 = &Program->Registers.SI;
-        } break;
-        case 3:
-        {
-          Result.RegPart1 = &Program->Registers.BP;
-          Result.RegPart2 = &Program->Registers.DI;
-        } break;
-        case 4:
-        {
-          Result.RegPart1 = &Program->Registers.SI;
-        } break;
-        case 5:
-        {
-          Result.RegPart1 = &Program->Registers.DI;
-        } break;
-        case 6:
-        {
-          Result.RegPart1 = &Program->Registers.BP;
-        } break;
-        case 7:
-        {
-          Result.RegPart1 = (u16 *)&Program->Registers.B;
-        } break;
-      }
-    }
-    else if(Program->RM.Value < 36)
-    {
-      RegisterOffset = Program->RM.Value % 4;
+  b32 IsResultTaken  = (OpType != SIM_OP_COMPARISON); 
+  b32 IsWriteToFlags = (OpType != SIM_OP_MOV);
 
-      Result.RegPart1 = (u16*)(&Program->Registers.A + RegisterOffset);
-    }
-    else
-    {
-      RegisterOffset = Program->RM.Value % 4;
+  Result.IsResultTaken = IsResultTaken;
+  Result.IsWriteToFlags = IsWriteToFlags;
 
-      Result.RegPart1 = &Program->Registers.SP + RegisterOffset;
-    }
-  }
-
-  return Result;
-}
-
-file_scope u32
-SimulatorGetValueFromRegister(cpu_program *Program, get_register_result *RegisterResult, b32 SrcTable)
-{
-  u32 Result = 0;
-  if((SrcTable == SIM_REG_TABLE) ||
-    ((SrcTable == SIM_RM_TABLE) && (Program->RM.Value >= 24)))
-  {
-    if(Program->Reg.Value < 4)
-    {
-      Result = ((reg_mix *)RegisterResult->RegPart1)->L;
-    }
-    else if(Program->Reg.Value < 8)
-    {
-      Result = ((reg_mix *)RegisterResult->RegPart1)->H;
-    }
-    else
-    {
-      Result = *RegisterResult->RegPart1;
-    }
-  }
-  else if(SrcTable == SIM_SEG_TABLE)
-  {
-    Result = *RegisterResult->RegPart1;
-  }
-  else if(SrcTable == SIM_RM_TABLE)
-  {
-    if(Program->RM.Value == RM_16BIT_IMM_CASE)
-    {
-      Result = Program->Displacement.Value;
-    }
-    else
-    {
-
-      u32 RegisterOffset = Program->Reg.Value % 8;
-      if(RegisterOffset > 3)
-      {
-        Result = *RegisterResult->RegPart1;
-      }
-      else
-      {
-        Result = *RegisterResult->RegPart1 + *RegisterResult->RegPart2;
-      }
-    }
-  }
-  return Result;
-}
-
-
-//@NOTE(Emilio): START HERE!!!
-//@TODO(Emilio): We need to consider memory ops with next time.
-file_scope void
-SimulatorSimMov(cpu_program *Program, alu_contents *ResultContents)
-{
-  get_register_result FirstReg = {};
-  get_register_result SecondReg = {};
-
+  //@NOTE(Emilio): SEG and RM
   if(Program->Seg.IsExist)
   {
-    FirstReg = SimulatorGetRegisterPtr(Program, SIM_SEG_TABLE);
-    if(Program->RM.IsExist)
+    u16 SegmentValue = 0;
+    u16* SegPtr = &Program->Registers.ES;
+    SegPtr += Program->Seg.Value;
+    SegmentValue = *SegPtr;
+
+    lea_result RMValue = {};
+    u16 RMIndex = Program->RM.Value;
+    if(RMIndex < 24)
     {
-      SecondReg = SimulatorGetRegisterPtr(Program, SIM_RM_TABLE);
-    }
-  }
-  else if(Program->Reg.IsExist)
-  {
-    FirstReg = SimulatorGetRegisterPtr(Program, SIM_REG_TABLE);
-    if(Program->RM.IsExist)
-    {
-      SecondReg = SimulatorGetRegisterPtr(Program, SIM_RM_TABLE);
-
-      if(Program->Mod.Value == 0x3)
-      {
-        u32 RegisterValue = 0;
-        if(Program->Destination.Value)
-        {
-           RegisterValue = SimulatorGetValueFromRegister(Program, &SecondReg, SIM_RM_TABLE);
-          if(FirstReg.RegPart2)
-          {
-            u32 MemoryIndex = SimulatorGetValueFromRegister(Program, &FirstReg, SIM_RM_TABLE);
-            SimMemory[MemoryIndex] = RegisterValue;
-          }
-          else
-          {
-            *FirstReg.RegPart1 = RegisterValue;
-          }
-        }
-        else
-        {
-           RegisterValue = SimulatorGetValueFromRegister(Program, &FirstReg, SIM_REG_TABLE);
-
-          if(SecondReg.RegPart2)
-          {
-            u32 MemoryIndex = SimulatorGetValueFromRegister(Program, &SecondReg, SIM_RM_TABLE);
-            SimMemory[MemoryIndex] = RegisterValue;
-          }
-          else
-          {
-            *SecondReg.RegPart1 = RegisterValue;
-          }
-        }
-      }
-      else
-      {
-
-      }
+      RMValue = SimulatorLoadEffectiveAddress(Program, RMIndex);
     }
     else
     {
-      *FirstReg.RegPart1 = Program->Data.Value;
+      RMValue = SimulatorLoadRegisterValue(Program, (RMIndex - 24));
     }
 
+    if(Program->Destination.Value)
+    {
+      Result.Dest = SegPtr;
+      Result.A = *SegPtr;
+
+      Result.B = RMValue.Value;
+    }
+    else
+    {
+      Result.Dest       = RMValue.Address;
+      Result.A          = RMValue.Value;
+      Result.IsDestLow  = RMValue.IsLow;
+      Result.IsDestHigh = RMValue.IsHigh;
+
+      Result.B = *SegPtr;
+    }
   }
-  else if(Program->RM.IsExist)
+  //@NOTE(Emilio): DATA and [REG/RM]
+  else if(Program->Data.IsExist)
   {
-    FirstReg = SimulatorGetRegisterPtr(Program, SIM_RM_TABLE);
-    u32 MemoryIndex = SimulatorGetValueFromRegister(Program, &FirstReg, SIM_RM_TABLE);
-    SimMemory[MemoryIndex] = Program->Data.Value;
+    Result.B = Program->Data.Value;
+
+    if(Program->RM.IsExist)
+    {
+      lea_result RMValue = {};
+      u16 RMIndex = Program->RM.Value;
+      if(RMIndex < 24)
+      {
+        RMValue = SimulatorLoadEffectiveAddress(Program, RMIndex);
+      }
+      else
+      {
+        RMValue = SimulatorLoadRegisterValue(Program, (RMIndex - 24));
+      }
+
+      Result.Dest       = RMValue.Address;
+      Result.A          = RMValue.Value;
+      Result.IsDestLow  = RMValue.IsLow;
+      Result.IsDestHigh = RMValue.IsHigh;
+    }
+    else
+    {
+      lea_result RegValue = {};
+      RegValue = SimulatorLoadRegisterValue(Program, Program->Reg.Value);
+
+      Result.Dest       = RegValue.Address;
+      Result.A          = RegValue.Value;
+      Result.IsDestLow  = RegValue.IsLow;
+      Result.IsDestHigh = RegValue.IsHigh;
+    }
+  }
+  else
+  {
+    //@NOTE(Emilio): REG and RM
+    lea_result RegValue = SimulatorLoadRegisterValue(Program, Program->Reg.Value);
+
+    lea_result RMValue = {};
+    u16 RMIndex = Program->RM.Value;
+    if(RMIndex < 24)
+    {
+      RMValue = SimulatorLoadEffectiveAddress(Program, RMIndex);
+    }
+    else
+    {
+      RMValue = SimulatorLoadRegisterValue(Program, (RMIndex - 24));
+    }
+
+    if(Program->Destination.Value)
+    {
+      Result.Dest       = RegValue.Address;
+      Result.IsDestLow  = RegValue.IsLow;
+      Result.IsDestHigh = RegValue.IsHigh;
+
+      Result.A = RegValue.Value;
+      Result.B = RMValue.Value;
+    }
+    else
+    {
+      Result.Dest       = RMValue.Address;
+      Result.IsDestLow  = RMValue.IsLow;
+      Result.IsDestHigh = RMValue.IsHigh;
+
+      Result.A = RMValue.Value;
+      Result.B = RegValue.Value;
+    }
+  }
+  Result.PrevValue = *Result.Dest;
+
+  return Result;
+}
+
+
+file_scope void
+SimulatorUpdateFlags(u16 *Flags, alu_contents* ALU)
+{
+//@TODO(Emilio): Carry
+//@TODO(Emilio): Parity
+//@TODO(Emilio): Aux
+  if(ALU->NewValue == 0)
+  {
+    *Flags ^= ZERO_FLAG;
+  }
+
+  if(ALU->NewValue & 0x8000)
+  {
+    *Flags ^= SIGN_FLAG;
+  }
+//@TODO(Emilio): Trap
+//@TODO(Emilio): Interrupt
+//@TODO(Emilio): Direction
+//@TODO(Emilio): Overflow
+}
+
+file_scope void
+SimulatorSimulateMov(cpu_program *Program, alu_contents *ALU)
+{
+  ALU->NewValue = *ALU->Dest;
+  reg_mix *NewValueMix = (reg_mix *)&ALU->NewValue;
+
+  if(ALU->IsDestLow)
+  {
+    NewValueMix->L = ALU->B;
+  }
+  else if(ALU->IsDestHigh)
+  {
+    NewValueMix->H = ALU->B;
+  }
+  else
+  {
+    ALU->NewValue = ALU->B;
+  }
+
+  if(ALU->IsResultTaken)
+  {
+    *ALU->Dest = ALU->NewValue;
+  }
+
+  if(ALU->IsWriteToFlags)
+  {
+    SimulatorUpdateFlags(&Program->Registers.Flags, ALU);
   }
 }
 
@@ -335,18 +414,21 @@ SimulatorSingleInstruction(cpu_program *Program)
   }
   else if(ECB_IsStringEqual(Program->CurrentOpCodeString, "mov"))
   {
-    SimulatorSimMov(Program, &ResultContents);
+    alu_contents ALU = SimulatorLoadALU(Program, SIM_OP_MOV);
+    SimulatorSimulateMov(Program, &ALU);
   }
   else if(ECB_IsStringEqual(Program->CurrentOpCodeString, "add"))
   {
-    printf("add\n");
+    SimulatorLoadALU(Program, SIM_OP_ADDITION);
   }
   else if(ECB_IsStringEqual(Program->CurrentOpCodeString, "sub"))
   {
+    SimulatorLoadALU(Program, SIM_OP_SUBTRACTION);
     printf("sub\n");
   }
   else if(ECB_IsStringEqual(Program->CurrentOpCodeString, "cmp"))
   {
+    SimulatorLoadALU(Program, SIM_OP_SUBTRACTION);
     printf("cmp\n");
   }
 }

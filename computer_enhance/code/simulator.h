@@ -8,14 +8,25 @@
 
 global_variable u8 SimMemory[MegaBytes(1)];
 
-enum
+#define CARRY_FLAG      (1 << 0)
+#define PARITY_FLAG     (1 << 2)
+#define AUXILIARY_FLAG  (1 << 4)
+#define ZERO_FLAG       (1 << 6)
+#define SIGN_FLAG       (1 << 7)
+#define TRAP_FLAG       (1 << 8)
+#define INTERRUPT_FLAG  (1 << 9)
+#define DIRECTION_FLAG  (1 << 10)
+#define OVERFLOW_FLAG   (1 << 11)
+
+typedef enum
 {
   SIM_OP_MOV,
   SIM_OP_ADDITION,
   SIM_OP_SUBTRACTION,
   SIM_OP_MULTIPLICATION,
-  SIM_OP_DIVISION
-};
+  SIM_OP_DIVISION,
+  SIM_OP_COMPARISON
+} sim_op_type;
 
 enum
 {
@@ -30,7 +41,11 @@ typedef plex
 
   u32 A;
   u32 B;
+  u32 NewValue;
+  u16* Dest;
 
+  b32 IsDestLow;
+  b32 IsDestHigh;
   b32 IsWriteToFlags;
   b32 IsResultTaken;
 } alu_contents;
@@ -39,10 +54,20 @@ typedef plex
 //  return bx and di.
 typedef plex
 {
-  u16 *RegPart1;
-  u16 *RegPart2;
-} get_register_result;
+  u16 *Left;
+  u16 *Right;
 
+  u16 Displacement;
+} lea_contents;
+
+typedef plex
+{
+  u16 *Address;
+  u16 Value;
+
+  b32 IsLow;
+  b32 IsHigh;
+} lea_result;
 
 typedef plex
 {
@@ -78,6 +103,8 @@ typedef plex
   u16 Flags;
 } cpu_registers;
 
+
+//@NOTE(Emilio): decoder_value gets filled in by the decoder_field passed by the user.
 typedef plex
 {
   u32 Value;
@@ -86,6 +113,7 @@ typedef plex
 
 typedef plex
 {
+  //@NOTE(Emilio): Values for arithmetic
   char* CurrentOpCodeString;
   decoder_value Reg;
   decoder_value Seg;
@@ -93,11 +121,9 @@ typedef plex
   decoder_value Destination;
   decoder_value Displacement;
   decoder_value Data;
-  decoder_value Mod;
-  b32 IsRegDestination;
   u16 OpCodeData2;
 
-
+  //@NOTE(Emilio): Global to the process.
   cpu_registers Registers;
   u32 MemoryOffset;
   u32 ProgamSize;
