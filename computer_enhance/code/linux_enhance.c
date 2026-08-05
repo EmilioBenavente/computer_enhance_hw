@@ -23,10 +23,10 @@ main(s32 ArgCount, char **Args)
 
   u32 InstructionCount = 0;
   u32 PrintCount = 0;
-  while(ProgramA.Registers.IP !=
+  while(ProgramA.Registers.IP <
     (ProgramA.MemoryOffset + ProgramA.ProgamSize) % (MegaBytes(1) - 1))
   {
-    PrintCount = SimulatorPrintRegisters(RegisterStream.Content, &ProgramA, 1);
+    PrintCount = SimulatorPrintRegisters(RegisterStream.Content, &ProgramA);
     RegisterStream.ContentSize += PrintCount;
     RegisterStream.Content += PrintCount;
 
@@ -43,7 +43,7 @@ main(s32 ArgCount, char **Args)
     }
   }
 
-  PrintCount = SimulatorPrintRegisters(RegisterStream.Content, &ProgramA, 1);
+  PrintCount = SimulatorPrintRegisters(RegisterStream.Content, &ProgramA);
   RegisterStream.ContentSize += PrintCount;
   RegisterStream.Content += PrintCount;
 

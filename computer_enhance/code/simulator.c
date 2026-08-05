@@ -12,7 +12,7 @@ SimulatorFlashProgram(u8 *ProgramPtr, u32 ProgramSize, u32 OffsetInMemory)
 }
 
 file_scope u32
-SimulatorPrintRegisters(char* WritePtr, cpu_program *Program, b32 IsHexMode)
+SimulatorPrintRegisters(char* WritePtr, cpu_program *Program)
 {
   u32 Result = 0;
 
@@ -20,46 +20,23 @@ SimulatorPrintRegisters(char* WritePtr, cpu_program *Program, b32 IsHexMode)
   char* PrintPtr = PrintBuffer;
 
   PrintPtr += sprintf(PrintPtr, "{\n");
-  if(IsHexMode)
-  {
-    PrintPtr += sprintf(PrintPtr, "\tAX -> 0x%X\n", Program->Registers.A.X);
-    PrintPtr += sprintf(PrintPtr, "\tBX -> 0x%X\n", Program->Registers.B.X);
-    PrintPtr += sprintf(PrintPtr, "\tCX -> 0x%X\n", Program->Registers.C.X);
-    PrintPtr += sprintf(PrintPtr, "\tDX -> 0x%X\n", Program->Registers.D.X);
-    PrintPtr += sprintf(PrintPtr, "\n");
-    PrintPtr += sprintf(PrintPtr, "\tSP -> 0x%X\n", Program->Registers.SP);
-    PrintPtr += sprintf(PrintPtr, "\tBP -> 0x%X\n", Program->Registers.BP);
-    PrintPtr += sprintf(PrintPtr, "\tSI -> 0x%X\n", Program->Registers.SI);
-    PrintPtr += sprintf(PrintPtr, "\tDI -> 0x%X\n", Program->Registers.DI);
-    PrintPtr += sprintf(PrintPtr, "\n");
-    PrintPtr += sprintf(PrintPtr, "\tES -> 0x%X\n", Program->Registers.ES);
-    PrintPtr += sprintf(PrintPtr, "\tCS -> 0x%X\n", Program->Registers.CS);
-    PrintPtr += sprintf(PrintPtr, "\tSS -> 0x%X\n", Program->Registers.SS);
-    PrintPtr += sprintf(PrintPtr, "\tDS -> 0x%X\n", Program->Registers.DS);
-    PrintPtr += sprintf(PrintPtr, "\n");
-    PrintPtr += sprintf(PrintPtr, "\tIP -> 0x%X\n", Program->Registers.IP);
-    PrintPtr += sprintf(PrintPtr, "\n");
-  }
-  else
-  {
-    PrintPtr += sprintf(PrintPtr, "\tAX -> 0x%d\n", Program->Registers.A.X);
-    PrintPtr += sprintf(PrintPtr, "\tBX -> 0x%d\n", Program->Registers.B.X);
-    PrintPtr += sprintf(PrintPtr, "\tCX -> 0x%d\n", Program->Registers.C.X);
-    PrintPtr += sprintf(PrintPtr, "\tDX -> 0x%d\n", Program->Registers.D.X);
-    PrintPtr += sprintf(PrintPtr, "\n");
-    PrintPtr += sprintf(PrintPtr, "\tSP -> 0x%d\n", Program->Registers.SP);
-    PrintPtr += sprintf(PrintPtr, "\tBP -> 0x%d\n", Program->Registers.BP);
-    PrintPtr += sprintf(PrintPtr, "\tSI -> 0x%d\n", Program->Registers.SI);
-    PrintPtr += sprintf(PrintPtr, "\tDI -> 0x%d\n", Program->Registers.DI);
-    PrintPtr += sprintf(PrintPtr, "\n");
-    PrintPtr += sprintf(PrintPtr, "\tES -> 0x%d\n", Program->Registers.ES);
-    PrintPtr += sprintf(PrintPtr, "\tCS -> 0x%d\n", Program->Registers.CS);
-    PrintPtr += sprintf(PrintPtr, "\tSS -> 0x%d\n", Program->Registers.SS);
-    PrintPtr += sprintf(PrintPtr, "\tDS -> 0x%d\n", Program->Registers.DS);
-    PrintPtr += sprintf(PrintPtr, "\n");
-    PrintPtr += sprintf(PrintPtr, "\tIP -> 0x%d\n", Program->Registers.IP);
-    PrintPtr += sprintf(PrintPtr, "\n");
-  }
+  PrintPtr += sprintf(PrintPtr, "\tAX -> 0x%X [%d] [%d]\n", Program->Registers.A.X, (s16)Program->Registers.A.X, (u16)Program->Registers.A.X);
+  PrintPtr += sprintf(PrintPtr, "\tBX -> 0x%X [%d] [%d]\n", Program->Registers.B.X, (s16)Program->Registers.B.X, (u16)Program->Registers.B.X);
+  PrintPtr += sprintf(PrintPtr, "\tCX -> 0x%X [%d] [%d]\n", Program->Registers.C.X, (s16)Program->Registers.C.X, (u16)Program->Registers.C.X);
+  PrintPtr += sprintf(PrintPtr, "\tDX -> 0x%X [%d] [%d]\n", Program->Registers.D.X, (s16)Program->Registers.D.X, (u16)Program->Registers.D.X);
+  PrintPtr += sprintf(PrintPtr, "\n");
+  PrintPtr += sprintf(PrintPtr, "\tSP -> 0x%X [%d] [%d]\n", Program->Registers.SP, (s16)Program->Registers.SP, (u16)Program->Registers.SP);
+  PrintPtr += sprintf(PrintPtr, "\tBP -> 0x%X [%d] [%d]\n", Program->Registers.BP, (s16)Program->Registers.BP, (u16)Program->Registers.BP);
+  PrintPtr += sprintf(PrintPtr, "\tSI -> 0x%X [%d] [%d]\n", Program->Registers.SI, (s16)Program->Registers.SI, (u16)Program->Registers.SI);
+  PrintPtr += sprintf(PrintPtr, "\tDI -> 0x%X [%d] [%d]\n", Program->Registers.DI, (s16)Program->Registers.DI, (u16)Program->Registers.DI);
+  PrintPtr += sprintf(PrintPtr, "\n");
+  PrintPtr += sprintf(PrintPtr, "\tES -> 0x%X [%d] [%d]\n", Program->Registers.ES, (s16)Program->Registers.ES, (u16)Program->Registers.ES);
+  PrintPtr += sprintf(PrintPtr, "\tCS -> 0x%X [%d] [%d]\n", Program->Registers.CS, (s16)Program->Registers.CS, (u16)Program->Registers.CS);
+  PrintPtr += sprintf(PrintPtr, "\tSS -> 0x%X [%d] [%d]\n", Program->Registers.SS, (s16)Program->Registers.SS, (u16)Program->Registers.SS);
+  PrintPtr += sprintf(PrintPtr, "\tDS -> 0x%X [%d] [%d]\n", Program->Registers.DS, (s16)Program->Registers.DS, (u16)Program->Registers.DS);
+  PrintPtr += sprintf(PrintPtr, "\n");
+  PrintPtr += sprintf(PrintPtr, "\tIP -> 0x%X [%d] [%d]\n", Program->Registers.IP, (s16)Program->Registers.IP, (u16)Program->Registers.IP);
+  PrintPtr += sprintf(PrintPtr, "\n");
 
   PrintPtr += sprintf(PrintPtr, "\tFLAGS -> ");
   PrintPtr += sprintf(PrintPtr, "[%c] ", (Program->Registers.Flags & CARRY_FLAG)      ? 'C' : ' ');
@@ -194,17 +171,20 @@ file_scope void
 SimulatorFillProgramWithDecoderFields(cpu_program *Program, decoder_opcode *Fields)
 {
   //@TODO @HARDCODE(Emilio): Should do something like if(FieldExist) -> Get Value.
-  Program->CurrentOpCodeString = Fields->OpCodeStats.OpCodeString;
-  Program->Reg.IsExist  =   (Fields->Reg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS || Fields->Reg.FieldValue != 0;
-  Program->Reg.Value    =    Fields->Reg.FieldValue + (8*Fields->WideFlag.FieldValue);
-  Program->Seg.IsExist  =   (Fields->SegmentReg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS || Fields->SegmentReg.FieldValue != 0;
-  Program->Seg.Value    =    Fields->SegmentReg.FieldValue;
-  Program->Destination.IsExist = (Fields->DestinationFlag.StateFlags & FIELD_EXISTS) == FIELD_EXISTS || Fields->DestinationFlag.FieldValue != 0;
-  Program->Destination.Value  = Fields->DestinationFlag.FieldValue;
-  Program->Data.IsExist =   (Fields->Data.StateFlags & FIELD_EXISTS) == FIELD_EXISTS || Fields->Data.FieldValue != 0;
-  Program->Data.Value   =    Fields->Data.FieldValue;
-  Program->RM.IsExist   = (Fields->RM.StateFlags & FIELD_EXISTS) == FIELD_EXISTS || Fields->RM.FieldValue != 0;
-  Program->OpCodeData2  = Fields->Data2.FieldValue;
+  Program->CurrentOpCodeString  = Fields->OpCodeStats.OpCodeString;
+  Program->CurrentOpCode        = Fields->OpCodeStats.OpCode;
+  Program->Reg.IsExist          = (Fields->Reg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS || Fields->Reg.FieldValue != 0;
+  Program->Reg.Value            = Fields->Reg.FieldValue + (8*Fields->WideFlag.FieldValue);
+  Program->Seg.IsExist          = (Fields->SegmentReg.StateFlags & FIELD_EXISTS) == FIELD_EXISTS || Fields->SegmentReg.FieldValue != 0;
+  Program->Seg.Value            =  Fields->SegmentReg.FieldValue;
+  Program->Destination.IsExist  = (Fields->DestinationFlag.StateFlags & FIELD_EXISTS) == FIELD_EXISTS || Fields->DestinationFlag.FieldValue != 0;
+  Program->Destination.Value    = Fields->DestinationFlag.FieldValue;
+  Program->Data.IsExist         = (Fields->Data.StateFlags & FIELD_EXISTS) == FIELD_EXISTS || Fields->Data.FieldValue != 0;
+  Program->Data.Value           =  Fields->Data.FieldValue;
+  Program->Displacement.IsExist  = (Fields->Displacement.StateFlags & FIELD_EXISTS) == FIELD_EXISTS || Fields->Displacement.FieldValue != 0;
+  Program->Displacement.Value   =  Fields->Displacement.FieldValue;
+  Program->RM.IsExist           = (Fields->RM.StateFlags & FIELD_EXISTS) == FIELD_EXISTS || Fields->RM.FieldValue != 0;
+  Program->OpCodeData2          = Fields->Data2.FieldValue;
 
   if(Program->Seg.IsExist)
   {
@@ -354,22 +334,72 @@ SimulatorLoadALU(cpu_program *Program, sim_op_type OpType)
 file_scope void
 SimulatorUpdateFlags(u16 *Flags, alu_contents* ALU)
 {
-//@TODO(Emilio): Carry
-//@TODO(Emilio): Parity
-//@TODO(Emilio): Aux
+  u32 TestMask = ALU->IsDestLow ? (1 << 8) : (1 << 16);
+  b32 IsCarry = ALU->NewValue & (TestMask);
+  if(IsCarry)
+  {
+    *Flags |= CARRY_FLAG;
+  }
+  else
+  {
+    *Flags &= ~(CARRY_FLAG);
+  }
+
+  u16 TestValue = ALU->NewValue;
+  TestValue = TestValue ^ (TestValue>>1);
+  TestValue = TestValue ^ (TestValue>>2);
+  TestValue = TestValue ^ (TestValue>>4);
+  TestValue = (~TestValue) & 0x1;
+  if(TestValue)
+  {
+    *Flags |= PARITY_FLAG;
+  }
+  else
+  {
+    *Flags &= ~(PARITY_FLAG);
+  }
+
+  if(ALU->IsAFSet)
+  {
+    *Flags |= AUXILIARY_FLAG;
+  }
+  else
+  {
+    *Flags &= ~(AUXILIARY_FLAG);
+  }
+
   if(ALU->NewValue == 0)
   {
-    *Flags ^= ZERO_FLAG;
+    *Flags |= ZERO_FLAG;
+  }
+  else
+  {
+    *Flags &= ~(ZERO_FLAG);
   }
 
   if(ALU->NewValue & 0x8000)
   {
-    *Flags ^= SIGN_FLAG;
+    *Flags |= SIGN_FLAG;
   }
-//@TODO(Emilio): Trap
+  else
+  {
+    *Flags &= ~(SIGN_FLAG);
+  }
+
+
+  if(ALU->IsOFSet)
+  {
+    *Flags |= OVERFLOW_FLAG;
+  }
+  else
+  {
+    *Flags &= ~(OVERFLOW_FLAG);
+  }
+
+//@NOTE(Emilio): System-Case Driven
 //@TODO(Emilio): Interrupt
 //@TODO(Emilio): Direction
-//@TODO(Emilio): Overflow
+//@TODO(Emilio): Trap
 }
 
 file_scope void
@@ -403,14 +433,296 @@ SimulatorSimulateMov(cpu_program *Program, alu_contents *ALU)
 }
 
 file_scope void
+SimulatorSimulateAdd(cpu_program *Program, alu_contents *ALU)
+{
+  ALU->NewValue = *ALU->Dest;
+  reg_mix *NewValueMix = (reg_mix *)&ALU->NewValue;
+
+  if(ALU->IsDestLow)
+  {
+    NewValueMix->L = NewValueMix->L + ALU->B;
+  }
+  else if(ALU->IsDestHigh)
+  {
+    NewValueMix->H = NewValueMix->H + ALU->B;
+  }
+  else
+  {
+    ALU->NewValue = ALU->NewValue + ALU->B;
+  }
+
+  if(ALU->IsResultTaken)
+  {
+    *ALU->Dest = ALU->NewValue;
+  }
+
+  if(ALU->IsWriteToFlags)
+  {
+    ALU->IsAFSet = (((ALU->PrevValue & 0xF) + (ALU->B & 0xF)) & 0x10);
+
+    u32 SignBit = ALU->IsDestLow ? (1 << 7) : (1 << 15);
+    ALU->IsOFSet = (ALU->NewValue ^ ALU->PrevValue) &
+      (~(ALU->PrevValue ^ ALU->B)) & SignBit;
+
+    SimulatorUpdateFlags(&Program->Registers.Flags, ALU);
+  }
+}
+
+file_scope void
+SimulatorSimulateSub(cpu_program *Program, alu_contents *ALU)
+{
+  ALU->NewValue = *ALU->Dest;
+  reg_mix *NewValueMix = (reg_mix *)&ALU->NewValue;
+
+  if(ALU->IsDestLow)
+  {
+    NewValueMix->L = NewValueMix->L - ALU->B;
+  }
+  else if(ALU->IsDestHigh)
+  {
+    NewValueMix->H = NewValueMix->H - ALU->B;
+  }
+  else
+  {
+    ALU->NewValue = ALU->NewValue - ALU->B;
+  }
+
+  if(ALU->IsResultTaken)
+  {
+    *ALU->Dest = ALU->NewValue;
+  }
+
+  if(ALU->IsWriteToFlags)
+  {
+    ALU->IsAFSet = (((ALU->PrevValue & 0xF) - (ALU->B & 0xF)) & 0x10);
+
+    u32 SignBit = ALU->IsDestLow ? (1 << 7) : (1 << 15);
+    ALU->IsOFSet = (ALU->NewValue ^ ALU->A) &
+      (ALU->A ^ ALU->B) & SignBit;
+
+    SimulatorUpdateFlags(&Program->Registers.Flags, ALU);
+  }
+}
+
+file_scope void
+SimulatorSimulateJmp(cpu_program *Program)
+{
+  switch(Program->CurrentOpCode)
+  {
+    //@NOTE(Emilio): OP_JE_JZ
+    case 0x74:
+    {
+      if(Program->Registers.Flags & ZERO_FLAG)
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_JL_JNGE
+    case 0x7C:
+    {
+      if((Program->Registers.Flags & SIGN_FLAG)     ^
+        (Program->Registers.Flags  & OVERFLOW_FLAG))
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_JLE_JNG
+    case 0x7E:
+    {
+      if((Program->Registers.Flags & SIGN_FLAG)     ^
+        (Program->Registers.Flags  & OVERFLOW_FLAG) |
+        (Program->Registers.Flags  & ZERO_FLAG))
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_JB_JNAE
+    case 0x72:
+    {
+      if(Program->Registers.Flags & CARRY_FLAG)
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_JBE_JNA
+    case 0x76:
+    {
+      if((Program->Registers.Flags & CARRY_FLAG) |
+      (Program->Registers.Flags   & ZERO_FLAG))
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_JP_JPE
+    case 0x7A:
+    {
+      if((Program->Registers.Flags & PARITY_FLAG) |
+      (Program->Registers.Flags   & ZERO_FLAG))
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_JO
+    case 0x70:
+    {
+      if(Program->Registers.Flags & OVERFLOW_FLAG)
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_JS
+    case 0x78:
+    {
+      if(Program->Registers.Flags & SIGN_FLAG)
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_JNE_JNZ
+    case 0x75:
+    {
+      if((Program->Registers.Flags & ZERO_FLAG) == 0)
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_JNL_JGE
+    case 0x7D:
+    {
+      if((Program->Registers.Flags & SIGN_FLAG)     ^
+        (Program->Registers.Flags  & OVERFLOW_FLAG) == 0)
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_JNLE_JG
+    case 0x7F:
+    {
+      if((Program->Registers.Flags & SIGN_FLAG)     ^
+        (Program->Registers.Flags  & OVERFLOW_FLAG) |
+        (Program->Registers.Flags  & ZERO_FLAG) == 0)
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_JNB_JAE
+    case 0x73:
+    {
+      if((Program->Registers.Flags & CARRY_FLAG) == 0)
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_JNBE_JA
+    case 0x77:
+    {
+      if((Program->Registers.Flags & CARRY_FLAG) |
+        (Program->Registers.Flags  & ZERO_FLAG) == 0)
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_JNP_JPO
+    case 0x7B:
+    {
+      if((Program->Registers.Flags & PARITY_FLAG) == 0)
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_JNO
+    case 0x71:
+    {
+      if((Program->Registers.Flags & OVERFLOW_FLAG) == 0)
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_JNS
+    case 0x79:
+    {
+      if((Program->Registers.Flags & SIGN_FLAG) == 0)
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_LOOP
+    case 0xE2:
+    {
+      Program->Registers.C.X = Program->Registers.C.X - 1;
+      if(Program->Registers.C.X == 0)
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_LOOPZ_LOOPE
+    case 0xE1:
+    {
+      Program->Registers.C.X = Program->Registers.C.X - 1;
+      if(Program->Registers.C.X &&
+        (Program->Registers.Flags & ZERO_FLAG))
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_LOOPNZ_LOOPNE
+    case 0xE0:
+    {
+      Program->Registers.C.X = Program->Registers.C.X - 1;
+      if(Program->Registers.C.X &&
+        (Program->Registers.Flags & ZERO_FLAG) == 0)
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+
+    //@NOTE(Emilio): OP_JXZ
+    case 0xE3:
+    {
+      if(Program->Registers.C.X == 0)
+      {
+        Program->Registers.IP = Program->Registers.IP + Program->Data.Value;
+      }
+    } break;
+  }
+
+
+  //@TODO(Emilio): OP_JMP_SEG
+  //@TODO(Emilio): OP_JMP_SEG_SHORT
+  //@TODO(Emilio): OP_JMP_INDIRECT_SEG
+  //@TODO(Emilio): OP_JMP_DIRECT_INTERSEG
+  //@TODO(Emilio): OP_JMP_INDIRECT_INTERSEG
+
+}
+
+file_scope void
 SimulatorSingleInstruction(cpu_program *Program)
 {
 
   alu_contents ResultContents = {};
 
-  if(*Program->CurrentOpCodeString == 'j')
+  if((*Program->CurrentOpCodeString == 'j') ||
+    (ECB_IsStringEqual(Program->CurrentOpCodeString, "loop")))
   {
-    printf("jmp\n");
+    SimulatorSimulateJmp(Program);
   }
   else if(ECB_IsStringEqual(Program->CurrentOpCodeString, "mov"))
   {
@@ -419,16 +731,17 @@ SimulatorSingleInstruction(cpu_program *Program)
   }
   else if(ECB_IsStringEqual(Program->CurrentOpCodeString, "add"))
   {
-    SimulatorLoadALU(Program, SIM_OP_ADDITION);
+    alu_contents ALU = SimulatorLoadALU(Program, SIM_OP_ADDITION);
+    SimulatorSimulateAdd(Program, &ALU);
   }
   else if(ECB_IsStringEqual(Program->CurrentOpCodeString, "sub"))
   {
-    SimulatorLoadALU(Program, SIM_OP_SUBTRACTION);
-    printf("sub\n");
+    alu_contents ALU = SimulatorLoadALU(Program, SIM_OP_SUBTRACTION);
+    SimulatorSimulateSub(Program, &ALU);
   }
   else if(ECB_IsStringEqual(Program->CurrentOpCodeString, "cmp"))
   {
-    SimulatorLoadALU(Program, SIM_OP_SUBTRACTION);
-    printf("cmp\n");
+    alu_contents ALU = SimulatorLoadALU(Program, SIM_OP_COMPARISON);
+    SimulatorSimulateSub(Program, &ALU);
   }
 }

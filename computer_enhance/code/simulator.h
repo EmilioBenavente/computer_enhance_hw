@@ -48,6 +48,8 @@ typedef plex
   b32 IsDestHigh;
   b32 IsWriteToFlags;
   b32 IsResultTaken;
+  b32 IsAFSet;
+  b32 IsOFSet;
 } alu_contents;
 
 //@NOTE(Emilio): In indexes such as [bx + di], you need to
@@ -115,6 +117,7 @@ typedef plex
 {
   //@NOTE(Emilio): Values for arithmetic
   char* CurrentOpCodeString;
+  u16   CurrentOpCode;
   decoder_value Reg;
   decoder_value Seg;
   decoder_value RM;
